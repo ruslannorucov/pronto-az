@@ -1,24 +1,24 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-
+ 
 const protectedRoutes = [
   "/dashboard",
-  "/worker/panel",
+  "/worker/dashboard",
   "/worker/profile",
   "/worker/offers",
   "/request/new",
   "/admin",
 ];
-
+ 
 const authRoutes = ["/login", "/register"];
-
+ 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
+ 
   let response = NextResponse.next({
     request: { headers: request.headers },
   });
-
+ 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -41,46 +41,47 @@ export async function middleware(request: NextRequest) {
       },
     }
   );
-
+ 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
+ 
   // Qorunan səhifəyə giriş cəhdi — auth yoxdursa login-ə yönləndir
   const isProtected = protectedRoutes.some((route) =>
     pathname.startsWith(route)
   );
-
+ 
   if (isProtected && !user) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
-
-  // Auth səhifəsinə giriş — artıq giriş edilibsə yönləndir
+ 
+  // Auth səhifəsinə giriş — artıq login edilibsə yönləndir
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
-
+ 
   if (isAuthRoute && user) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
-
+ 
     if (profile?.role === "worker") {
-      return NextResponse.redirect(new URL("/worker/panel", request.url));
+      return NextResponse.redirect(new URL("/worker/dashboard", request.url));
     } else if (profile?.role === "admin") {
       return NextResponse.redirect(new URL("/admin", request.url));
     } else {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
-
+ 
   // Worker səhifələrinə müştəri girməsin
-  // /worker/register istisnadır — hər kəs açıq girə bilər
+  // /worker/register və /worker/pending istisnadır — hər kəs açıq girə bilər
   if (
     pathname.startsWith("/worker") &&
     !pathname.startsWith("/worker/register") &&
+    !pathname.startsWith("/worker/pending") &&
     user
   ) {
     const { data: profile } = await supabase
@@ -88,12 +89,12 @@ export async function middleware(request: NextRequest) {
       .select("role")
       .eq("id", user.id)
       .single();
-
+ 
     if (profile?.role !== "worker" && profile?.role !== "admin") {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
-
+ 
   // Admin səhifəsinə yalnız admin girsin
   if (pathname.startsWith("/admin") && user) {
     const { data: profile } = await supabase
@@ -101,15 +102,15 @@ export async function middleware(request: NextRequest) {
       .select("role")
       .eq("id", user.id)
       .single();
-
+ 
     if (profile?.role !== "admin") {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
-
+ 
   return response;
 }
-
+ 
 export const config = {
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
