@@ -29,7 +29,6 @@ export default function LoginPage() {
         return;
       }
 
-      // Role-a görə yönləndir
       const { data: profile } = await supabase
         .from("profiles")
         .select("role")
@@ -37,7 +36,7 @@ export default function LoginPage() {
         .single();
 
       if (profile?.role === "worker") {
-        router.push("/worker/dashboard");
+        router.push("/worker/panel");
       } else if (profile?.role === "admin") {
         router.push("/admin");
       } else {
@@ -52,7 +51,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0D1F3C] via-[#162F6A] to-[#1E1B6E] flex items-center justify-center px-5 py-12">
-      {/* Grid overlay */}
       <div
         className="pointer-events-none fixed inset-0"
         style={{
@@ -65,7 +63,6 @@ export default function LoginPage() {
       />
 
       <div className="relative w-full max-w-[420px]">
-        {/* Logo */}
         <Link
           href="/"
           className="font-serif text-2xl font-bold text-white tracking-tight flex items-center justify-center mb-8"
@@ -73,7 +70,6 @@ export default function LoginPage() {
           Pronto<span className="text-[var(--primary)]">.</span>az
         </Link>
 
-        {/* Card */}
         <div className="bg-white rounded-3xl p-8 shadow-[0_24px_64px_rgba(0,0,0,0.3)]">
           <h1 className="font-serif text-[26px] font-bold text-[var(--navy)] mb-1">
             Xoş gəldiniz
@@ -83,7 +79,6 @@ export default function LoginPage() {
           </p>
 
           <form onSubmit={handleLogin} className="space-y-4">
-            {/* Email */}
             <div>
               <label className="block text-[11px] font-bold text-[var(--gray-600)] uppercase tracking-wider mb-1.5">
                 Email
@@ -98,7 +93,6 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Şifrə */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-[11px] font-bold text-[var(--gray-600)] uppercase tracking-wider">
@@ -121,7 +115,6 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Xəta */}
             {error && (
               <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 flex items-center gap-2">
                 <span className="text-sm">⚠️</span>
@@ -129,7 +122,6 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
@@ -150,7 +142,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Divider */}
           <div className="flex items-center gap-3 my-6">
             <div className="h-px flex-1 bg-[var(--gray-200)]" />
             <p className="text-[11px] font-bold text-[var(--gray-400)] uppercase tracking-wider">
@@ -159,7 +150,6 @@ export default function LoginPage() {
             <div className="h-px flex-1 bg-[var(--gray-200)]" />
           </div>
 
-          {/* Register link */}
           <p className="text-center text-[13px] text-[var(--gray-400)]">
             Hesabınız yoxdur?{" "}
             <Link
@@ -171,7 +161,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Back to home */}
         <p className="text-center mt-6">
           <Link
             href="/"
