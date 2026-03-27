@@ -1,7 +1,7 @@
 # Pronto.az — UI Design Specification
 
-> **Scope:** Landing Page + Customer Order Form + Customer Dashboard + Worker Dashboard
-> **Note:** Other pages (worker dashboard, customer dashboard, worker profile, admin panel, etc.) are not yet designed. They will be added here as they are built. Until then, all components follow the Design Tokens below.
+> **Scope:** Landing Page + Customer Order Form + Customer Dashboard + Worker Dashboard + Worker Registration
+> **Note:** Other pages (worker profile, admin panel, etc.) are not yet designed. They will be added here as they are built. Until then, all components follow the Design Tokens below.
 > **Stack:** Next.js 14 · Tailwind CSS · shadcn/ui · Supabase
 > **Hybrid Approach:** Web App style (Landing Page) + Mobile App style (Order Form + Dashboard)
 
@@ -153,6 +153,12 @@ No hamburger. No nav links. No Sifariş ver.
 └─────────────────────────┘
 ```
 Width: `220px`, `rounded-2xl`, `shadow-[0_8px_32px_rgba(13,31,60,0.12)]`
+
+**Worker-specific navbar behaviour:**
+- "Usta ol" button (logged out) → `/worker/register`
+- Avatar dropdown "İş paneli" link (role=worker):
+  - `verified = false` → `/worker/pending` + "Gözlənilir" badge (`bg-[#FEF3C7] text-[#92400E]`)
+  - `verified = true` → `/worker/dashboard`
 
 ### 2.2 Hero Section
 
@@ -641,7 +647,221 @@ expired   → 48 saat keçdi ⏰                  (cron job, növbəti slot aç�
 
 ---
 
-## 6. Footer (`components/Footer.tsx`)
+## 6. Worker Registration
+
+> **Completed:** `app/(worker)/worker/register/page.tsx`
+> **Architecture:** "use client" — 3-step single-page form, inline styles (not Tailwind)
+> **Note:** Inline styles used instead of Tailwind CSS variables because Tailwind cannot
+>   resolve CSS variables in dynamic class names at runtime.
+
+### 6.1 Page Layout
+
+**Background:** Same as auth pages — navy gradient + grid overlay
+```jsx
+style={{
+  background: "linear-gradient(135deg, #0D1F3C 0%, #162F6A 55%, #1E1B6E 100%)",
+}}
+// Grid overlay: rgba(27,79,216,0.07), 48px, radial mask
+```
+
+**Card:**
+```jsx
+style={{
+  maxWidth: 440, background: "#fff", borderRadius: 24,
+  padding: "36px 32px 28px",
+  boxShadow: "0 24px 64px rgba(13,31,60,0.35)",
+}}
+```
+
+### 6.2 Step Progress Bar
+
+3 steps, centered, connected by lines:
+```jsx
+// Done step:    background #1B4FD8, color #fff, shows "✓"
+// Active step:  background #EFF4FF, border 1.5px #1B4FD8, color #1B4FD8
+// Pending step: background #F1F5FE, color #94A3C0
+// Connector:    height 1.5px, done → #1B4FD8, pending → #E4EAFB
+// Circle size:  28×28px
+```
+
+### 6.3 Step 1 — Əsas Məlumatlar
+
+**Fields:**
+- Ad + Soyad — `grid 1fr 1fr`, gap 10px
+- Telefon — `+994` prefix separated by border-right
+- Email — full width
+- İşləyə biləcəyiniz ərazilər — multi-select dropdown (see below)
+- Şifrə — with show/hide toggle
+
+**Input style:**
+```jsx
+style={{
+  border: "1.5px solid #E4EAFB", borderRadius: 12,
+  padding: "11px 14px", fontSize: 13,
+  color: "#0D1F3C", background: "#F8FAFF",
+}}
+// Focus: borderColor #1B4FD8, background #fff
+```
+
+**Multi-select dropdown (ərazilər):**
+- Trigger: shows selected pills, chevron rotates on open
+- Dropdown: `border 1.5px #1B4FD8, borderTop none, borderRadius 0 0 12px 12px`
+- Selected item: `background #EFF4FF, color #1B4FD8, fontWeight 600`
+- Checkbox: `15×15px, borderRadius 4px`, checked → `background #1B4FD8`
+- Pills: `background #EFF4FF, color #1B4FD8, border 1px #BFCFFE, borderRadius 999px`
+- Districts: Nəsimi, Xətai, Sabunçu, Suraxanı, Binəqədi, Nizami, Yasamal,
+             Pirəkəşkül, Sabail, Abşeron, Xırdalan, Novxanı
+
+**"Usta qeydiyyatı" badge:**
+```jsx
+style={{
+  background: "#EFF4FF", color: "#1B4FD8",
+  fontSize: 10, fontWeight: 700,
+  padding: "3px 10px", borderRadius: 999,
+  border: "1px solid #BFCFFE",
+}}
+// Small dot: width 8, height 8, borderRadius "50%", background #1B4FD8, opacity 0.7
+```
+
+### 6.4 Step 2 — Peşə Seçimi
+
+**Kateqoriya grid:** `grid 3 cols, gap 8px`
+```jsx
+// Normal: border 1.5px #E4EAFB, borderRadius 12, background #F8FAFF
+// Selected: border #1B4FD8, background #EFF4FF, boxShadow 0 2px 8px rgba(27,79,216,0.12)
+// Icon: fontSize 22, display block, marginBottom 4
+// Name: fontSize 11, fontWeight 600
+```
+
+**Təcrübə:** 4 buttons — `<1 ildən az` / `1–4 il` / `5–9 il` / `10+ il`
+```jsx
+// grid 4 cols, gap 8px
+// Normal: border 1.5px #E4EAFB, borderRadius 12, background #F8FAFF
+// Selected: border #1B4FD8, background #EFF4FF, boxShadow 0 2px 8px rgba(27,79,216,0.12)
+// Number: Playfair Display, fontSize 14, fontWeight 700
+// Sub-label: fontSize 9, color #94A3C0 (selected: #BFCFFE)
+```
+
+**Qiymət aralığı:** 2 inputs (Minimum / Maksimum)
+```jsx
+// Price input: flex row, number input + "₼" symbol
+// Symbol: borderLeft 1.5px #E4EAFB, fontSize 14, fontWeight 700, color #94A3C0
+// Number input font: Playfair Display, fontSize 15, fontWeight 700
+```
+
+**Bio textarea:** optional, rows=2, same input style
+
+### 6.5 Step 3 — Sənəd Yükləmə
+
+**Upload zone (ixtiyari):**
+```jsx
+// Empty state: border 2px dashed #BFCFFE, borderRadius 14, background #F8FAFF
+// Drag over: border #1B4FD8, background #EFF4FF
+// Uploaded: border 1.5px solid #10B981, background #F0FDF4
+// Icon: 📄 fontSize 26
+// Uploaded state: shows filename, size, green ✓ badge
+```
+
+**Info box:**
+```jsx
+style={{ background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 12 }}
+// Icon: ⏳
+// Text: "Sənəd yoxlaması 24–48 saat çəkir"
+```
+
+**Checklist (3 items):**
+```jsx
+// Done: background #D1FAE5, color #10B981
+// Pending: background #F1F5FE, color #94A3C0
+// Circle: 18×18px
+```
+
+**Şərtlər checkbox:** (step 3-ün sonunda, divider-dən sonra)
+```jsx
+// Checkbox: 18×18px, borderRadius 4, checked → background #1B4FD8
+// Text: fontSize 12, color #4A5878
+// Links: color #1B4FD8, fontWeight 600
+```
+
+**CTA buttons:**
+```jsx
+// Primary: gradient #1B4FD8 → #2563EB, borderRadius 14, disabled → #E4EAFB
+// "Sənədsiz davam et": text button, color #94A3C0, link #1B4FD8
+// "← Geri": border 1.5px #E4EAFB, background transparent, color #94A3C0
+```
+
+---
+
+## 7. Worker Pending & Status Screens
+
+> **Completed:**
+> - `app/(worker)/pending/page.tsx` — post-registration approval waiting screen
+> - `app/(worker)/layout.tsx` — verified/pending/blocked gate (renders instead of dashboard)
+
+### 7.1 Pending Page (`/worker/pending`)
+
+**When shown:** After successful registration, redirect from register page via URL params.
+
+**Layout:** Same navy gradient background + card as register page.
+
+**Success icon:**
+```jsx
+style={{
+  width: 64, height: 64, borderRadius: "50%",
+  background: "linear-gradient(135deg, #D1FAE5, #A7F3D0)",
+  border: "2px solid #6EE7B7",
+}}
+// Emoji: 🎉, fontSize 28
+```
+
+**Status steps (3):**
+```
+✓ Qeydiyyat göndərildi  → done  (blue circle, "Tamamlandı" green badge)
+⏳ Admin yoxlaması       → active (amber circle, "Gözlənilir" amber badge)
+🎉 Hesab aktivləşdirildi → pending (gray circle)
+```
+Connector lines: done → `#1B4FD8`, pending → `#E4EAFB`, width 2px, height 18px
+
+**Profile summary card:**
+```jsx
+style={{ background: "#F8FAFF", border: "1.5px solid #E4EAFB", borderRadius: 16, padding: 16 }}
+```
+Shows: avatar initial (blue gradient circle), name, category icon+name,
+telefon, kateqoriya, təcrübə, qiymət, ərazilər
+
+**Data source:** URL search params (not Supabase query) — avoids post-signUp session timing issue
+```
+/worker/pending?name=...&phone=...&category=...&catIcon=...&experience=...&priceMin=...&priceMax=...&districts=...
+```
+
+**Info box:**
+```jsx
+style={{ background: "#EFF4FF", border: "1px solid #BFCFFE", borderRadius: 12 }}
+// WhatsApp support number
+```
+
+### 7.2 Pending Screen (Layout Gate)
+
+**When shown:** Worker is logged in but `verified = false` — shown instead of dashboard on any `/worker/*` route.
+
+**Difference from pending page:** No profile summary card. Simpler — just status steps + support info.
+
+**Icon:** ⏳ in amber circle (`background: #FEF3C7, border: 2px solid #FCD34D`)
+
+### 7.3 Blocked Screen (Layout Gate)
+
+**When shown:** `verified = true` but `is_active = false`.
+
+```jsx
+// Icon: 🚫
+// Title: "Hesab deaktivdir"
+// Info box: red — background #FEE2E2, border #FECACA
+// CTA: Ana səhifəyə qayıt (blue gradient)
+```
+
+---
+
+## 8. Footer (`components/Footer.tsx`)
 
 **Background:** `#0A1628` + `border-t border-white/8`
 
@@ -664,7 +884,7 @@ expired   → 48 saat keçdi ⏰                  (cron job, növbəti slot aç�
 
 ---
 
-## 7. Reusable Components
+## 9. Reusable Components
 
 ### Buttons
 
@@ -691,6 +911,11 @@ className="border-[1.5px] border-[var(--gray-200)] bg-transparent text-[var(--na
 <span className="bg-orange-50 text-orange-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
   🔥 Populyar
 </span>
+
+// Pending (worker status)
+<span style={{ background: "#FEF3C7", color: "#92400E", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 999 }}>
+  Gözlənilir
+</span>
 ```
 
 ### Section Header
@@ -713,7 +938,7 @@ className="border-[1.5px] border-[var(--gray-200)] bg-transparent text-[var(--na
 
 ---
 
-## 8. Responsive Breakpoints
+## 10. Responsive Breakpoints
 
 ### Breakpoint Table
 
@@ -791,7 +1016,7 @@ This prevents the iPhone home indicator from overlapping CTA buttons.
 
 ---
 
-## 9. Animation Rules
+## 11. Animation Rules
 
 ```css
 /* Card hover */
@@ -827,18 +1052,22 @@ animate-pulse ← green dot
 
 /* Marker flyTo (map) */
 duration: 1.2s ← Leaflet flyTo
+
+/* Step transitions (register multi-step) */
+transition: all 0.15s — input focus, category/experience selection
 ```
 
 ---
 
-## 10. Pages Not Yet Designed
+## 12. Pages Not Yet Designed
 
 The following pages will be added here as they are designed and built.
 Until then, the Design Tokens above are the reference.
 
 - [x] Worker Dashboard ← Section 5
+- [x] Worker Registration ← Section 6
+- [x] Worker Pending & Status Screens ← Section 7
 - [ ] Worker Profile page
-- [ ] Worker Registration
 - [ ] Job Request Detail (`/request/[id]`) — offer comparison
 - [ ] Offer Detail & Comparison
 - [ ] In-app Chat (ChatWindow)

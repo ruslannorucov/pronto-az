@@ -2,13 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 
 interface WorkerStatus {
   verified:  boolean;
   is_active: boolean;
 }
+
+// Bu route-lar auth gate-dən keçir — login tələb edilmir
+const PUBLIC_WORKER_ROUTES = [
+  "/worker/register",
+  "/worker/pending",
+];
 
 // ─── Pending UI ────────────────────────────────────────────────────────────────
 
@@ -28,7 +34,6 @@ function PendingScreen() {
       position: "relative", overflow: "hidden",
       fontFamily: "'DM Sans', sans-serif",
     }}>
-      {/* Grid overlay */}
       <div style={{
         position: "absolute", inset: 0, pointerEvents: "none",
         backgroundImage: "linear-gradient(rgba(27,79,216,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(27,79,216,0.07) 1px, transparent 1px)",
@@ -42,12 +47,10 @@ function PendingScreen() {
         background: "#fff", borderRadius: 24, padding: "36px 32px 32px",
         boxShadow: "0 24px 64px rgba(13,31,60,0.35)",
       }}>
-        {/* Logo */}
         <div style={{ textAlign: "center", fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: "#0D1F3C" }}>
           Pronto<span style={{ color: "#1B4FD8" }}>.</span>az
         </div>
 
-        {/* Icon */}
         <div style={{ textAlign: "center", margin: "24px 0 4px" }}>
           <div style={{
             width: 64, height: 64, borderRadius: "50%",
@@ -65,7 +68,6 @@ function PendingScreen() {
           təsdiqlənəcəksiniz. Təsdiq sonrası WhatsApp və email bildirişi alacaqsınız.
         </p>
 
-        {/* Status steps */}
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3C0", letterSpacing: "0.08em", marginBottom: 12, textTransform: "uppercase" as const }}>
             Qeydiyyat statusu
@@ -83,7 +85,6 @@ function PendingScreen() {
                     border: s.state === "active" ? "1.5px solid #FCD34D" : "none",
                     color: s.state === "done" ? "#fff" : s.state === "active" ? "#92400E" : "#94A3C0",
                   }}>{s.icon}</div>
-
                   <div style={{ flex: 1 }}>
                     <div style={{
                       fontSize: 13, fontWeight: 600,
@@ -93,7 +94,6 @@ function PendingScreen() {
                       <div style={{ fontSize: 11, color: "#94A3C0", marginTop: 1 }}>Orta müddət: 24–48 saat</div>
                     )}
                   </div>
-
                   {s.state === "done" && (
                     <span style={{ fontSize: 10, fontWeight: 700, color: "#10B981", background: "#D1FAE5", padding: "2px 8px", borderRadius: 999 }}>Tamamlandı</span>
                   )}
@@ -109,7 +109,6 @@ function PendingScreen() {
           </div>
         </div>
 
-        {/* Info box */}
         <div style={{ background: "#EFF4FF", border: "1px solid #BFCFFE", borderRadius: 12, padding: "12px 14px", marginBottom: 24, display: "flex", gap: 10, alignItems: "flex-start" }}>
           <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>💬</span>
           <div style={{ fontSize: 12, color: "#1E3A5F", lineHeight: 1.6 }}>
@@ -117,7 +116,6 @@ function PendingScreen() {
           </div>
         </div>
 
-        {/* CTA */}
         <Link href="/" style={{
           display: "block", width: "100%", padding: 14, borderRadius: 14,
           background: "linear-gradient(135deg, #1B4FD8, #2563EB)",
@@ -201,12 +199,24 @@ function LoadingScreen() {
 
 export default function WorkerLayout({ children }: { children: React.ReactNode }) {
   const router   = useRouter();
+  const pathname = usePathname();
   const supabase = createClient();
 
   const [status,  setStatus]  = useState<WorkerStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Public route-larda layout gate işləmir — birbaşa children render et
+  const isPublicRoute = PUBLIC_WORKER_ROUTES.some(route =>
+    pathname.startsWith(route)
+  );
+
   useEffect(() => {
+    // Public route-larda Supabase sorğusu etmə
+    if (isPublicRoute) {
+      setLoading(false);
+      return;
+    }
+
     async function checkStatus() {
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -235,7 +245,6 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
         .single();
 
       if (!wp) {
-        // worker_profiles yoxdursa — qeydiyyat yarımçıqdır
         router.push("/worker/register");
         return;
       }
@@ -245,7 +254,10 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
     }
 
     checkStatus();
-  }, []);
+  }, [pathname]);
+
+  // Public route — gate yoxdur
+  if (isPublicRoute) return <>{children}</>;
 
   if (loading) return <LoadingScreen />;
 

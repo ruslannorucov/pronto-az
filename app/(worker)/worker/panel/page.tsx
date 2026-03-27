@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import WorkerDashboardClient from "./WorkerDashboardClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function WorkerDashboardPage() {
   // Bütün o uzun cookie və server tənzimləmələrini tək bir sətrlə əvəz etdik
   const supabase = await createClient();

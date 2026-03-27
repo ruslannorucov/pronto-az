@@ -148,12 +148,15 @@ Brand feel: Friendly + trustworthy (like Wolt, Airbnb)
 **Quick ref (primary brand values):**
 - Primary: `#1B4FD8` (CSS var: `--primary`) · Navy: `#0D1F3C` · Background: `#F8FAFF`
 - Headings: `Playfair Display` (font-serif) · All other text: `DM Sans` (font-sans)
-- Designed & completed pages: Landing Page + Order Form + Footer + Customer Dashboard
+- Designed & completed pages: Landing Page + Order Form + Footer + Customer Dashboard + Worker Registration
 - All other pages follow the same tokens until their design is added to DESIGN.md
 
 ## Tech Stack
 Framework:     Next.js 14 (App Router, TypeScript)
 Styling:       Tailwind CSS + shadcn/ui
+               NOTE: Worker registration pages use inline styles (not Tailwind CSS variables)
+               because Tailwind cannot resolve CSS variables in dynamic class names at runtime.
+               All other pages continue to use Tailwind + CSS variables as normal.
 Database:      Supabase (PostgreSQL + Auth + Storage + Realtime)
 Deploy:        Vercel
 Notifications: Twilio WhatsApp Business API + Supabase Realtime (in-app)
@@ -172,11 +175,14 @@ Development:   GitHub Codespaces (tablet-friendly)
 |---|---|---|
 | `app/page.tsx` | ✅ Done | Landing Page — real data from Supabase |
 | `app/(auth)/login/page.tsx` | ✅ Done | Email + password login |
-| `app/(auth)/register/page.tsx` | ✅ Done | Customer + worker registration, email verify flow |
+| `app/(auth)/register/page.tsx` | ✅ Done | Customer registration |
 | `app/(customer)/request/new/page.tsx` | ✅ Done | 4-step order form |
 | `app/(customer)/dashboard/page.tsx` | ✅ Done | Customer dashboard (client-side) |
 | `app/(customer)/dashboard/DashboardClient.tsx` | ✅ Done | Order states: searching / offer received / tracking |
 | `app/(customer)/layout.tsx` | ✅ Done | Customer layout with Navbar |
+| `app/(worker)/worker/register/page.tsx` | ✅ Done | Worker registration — 3-step form |
+| `app/(worker)/pending/page.tsx` | ✅ Done | Worker pending approval screen |
+| `app/(worker)/layout.tsx` | ✅ Done | Worker layout — verified/pending/blocked status gate |
 | `middleware.ts` | ✅ Done | Route protection + role-based redirect |
 | `components/Navbar.tsx` | ✅ Done | Sticky, scroll shadow, auth-aware, avatar dropdown |
 | `components/Footer.tsx` | ✅ Done | 5 columns, social links, app badges |
@@ -189,7 +195,7 @@ Development:   GitHub Codespaces (tablet-friendly)
 app/
   (auth)/
     login/page.tsx                ← ✅ Done
-    register/page.tsx             ← ✅ Done
+    register/page.tsx             ← ✅ Done (customer only)
   (customer)/
     layout.tsx                    ← ✅ Done
     dashboard/
@@ -199,7 +205,10 @@ app/
     request/new/page.tsx          ← ✅ Done
     request/[id]/page.tsx         ← pending (offer comparison)
   (worker)/
-    dashboard/page.tsx            ← pending
+    layout.tsx                    ← ✅ Done (verified/pending/blocked gate)
+    worker/register/page.tsx      ← ✅ Done (3-step registration)
+    pending/page.tsx              ← ✅ Done (approval waiting screen)
+    dashboard/page.tsx            ← ✅ Done (WorkerDashboardClient)
     profile/page.tsx              ← pending
     offers/page.tsx               ← pending
   (admin)/
@@ -240,8 +249,10 @@ docs/
 profiles        -> id, full_name, phone, role (customer/worker/admin),
                    avatar_url, city, is_verified (bool), created_at
 
-worker_profiles -> user_id, category_id, bio, experience_years,
+worker_profiles -> user_id, category_id (uuid FK), category_ids (uuid[]),
+                   bio, experience_years (int), experience_range (text),
                    price_min, price_max, available_days (text[]),
+                   available_districts (text[]),
                    location_lat, location_lng,
                    current_lat (numeric),
                    current_lng (numeric),
@@ -281,6 +292,65 @@ disputes        -> job_id, opened_by, reason, status, resolved_at
 notifications   -> id, user_id, type (text), title (text), body (text),
                    job_id (uuid, nullable), read_at (timestamptz),
                    sent_whatsapp (bool), created_at
+
+### Category UUIDs (real values in DB)
+  Plumbing    → 11111111-1111-1111-1111-111111111111
+  Electrical  → 22222222-2222-2222-2222-222222222222
+  Painting    → 33333333-3333-3333-3333-333333333333
+  Home Repair → 44444444-4444-4444-4444-444444444444
+  Moving      → 55555555-5555-5555-5555-555555555555
+  Cleaning    → 66666666-6666-6666-6666-666666666666
+
+### Experience range values (experience_range text field)
+  lt1    → 1 ildən az  (experience_years: 0)
+  1-4    → 1–4 il      (experience_years: 2)
+  5-9    → 5–9 il      (experience_years: 7)
+  10plus → 10+ il      (experience_years: 10)
+
+## Worker Registration Flow
+
+### Route
+  /worker/register  →  app/(worker)/worker/register/page.tsx
+
+### 3-step form (single file, step state)
+  Step 1: Ad, soyad, telefon, email, şifrə, ərazilər (available_districts)
+  Step 2: Kateqoriya (category_id + category_ids), təcrübə, qiymət aralığı, bio
+  Step 3: Şəxsiyyət vəsiqəsi (ixtiyari upload), şərtlər checkbox
+
+### On submit
+  1. supabase.auth.signUp() — trigger auto-inserts profiles row
+  2. worker_profiles INSERT — category_id, category_ids, available_districts,
+                              experience_range, experience_years, price_min,
+                              price_max, bio, verified=false, is_active=false
+  3. Storage upload to worker-docs bucket (if docs provided, non-blocking)
+  4. router.push("/worker/pending?name=...&category=...&...") — URL params carry
+     summary data to avoid post-signUp session timing issues
+
+  ⚠️  TODO (when admin panel is ready):
+      Add notifications INSERT after step 2 in handleSubmit:
+      supabase.from("notifications").insert({
+        user_id: uid,
+        type: "worker_pending_review",
+        title: "Yeni usta qeydiyyatı",
+        body: `${firstName} ${lastName} — ${catName} — ${districts.join(", ")}`,
+        job_id: null,
+      })
+      File: app/(worker)/worker/register/page.tsx — handleSubmit(), after worker_profiles insert
+
+### Worker status gate (app/(worker)/layout.tsx)
+  Every /worker/* route passes through this layout.
+  Logic:
+    - No user → redirect /login
+    - role ≠ "worker" → redirect /dashboard
+    - No worker_profiles row → redirect /worker/register
+    - verified = false → show PendingScreen (status steps UI)
+    - is_active = false → show BlockedScreen
+    - verified = true + is_active = true → render {children}
+
+### Pending page (/worker/pending)
+  Reads summary data from URL search params:
+  name, phone, category, catIcon, experience, priceMin, priceMax, districts
+  Shows: success icon, status steps, profile summary card, WhatsApp support info
 
 ## Business Rules
 - Commission: 10% taken from every completed transaction
@@ -347,10 +417,10 @@ IN SCOPE:
   - Landing page ✅
   - Auth (login, register, email verification) ✅
   - Customer dashboard ✅
-  - Worker registration + profile
+  - Worker registration + pending approval flow ✅
   - Worker catalog + search + filters
   - Customer job request form (image/video upload, map, time selection) ✅
-  - Worker dashboard (requests, offers)
+  - Worker dashboard (requests, offers) ✅
   - Offer system
   - In-app Realtime chat
   - Review + rating system
@@ -427,6 +497,8 @@ OUT OF SCOPE (post-MVP):
 - Playfair Display: h1, h2, h3, worker names, price elements (font-serif)
 - DM Sans: all other text (font-sans, default)
 - CSS variables: use `var(--primary)` not hardcoded `#1B4FD8`
+  Exception: worker registration + pending pages use inline styles with hex values
+  because Tailwind cannot resolve CSS variables dynamically at runtime
 - Dynamic imports for client-only libraries (e.g. Leaflet): `dynamic(() => import(...), { ssr: false })`
 - Order IDs displayed as #PRN-XXXX (first 4 chars of UUID, uppercase)
 
@@ -476,6 +548,12 @@ Navbar has two variants: `variant="landing"` (default) and `variant="app"`.
 | Sifarişlərim | Mobile only | ❌ |
 | Çıxış | ✅ | ✅ |
 
+### Worker-specific navbar behaviour
+- "Usta ol" button (logged out, landing) → /worker/register
+- Avatar dropdown "İş paneli" link (worker role):
+    verified = false → /worker/pending  (badge: "Gözlənilir")
+    verified = true  → /worker/dashboard
+
 ### Notes
 - Hamburger is JS-controlled (`isMobile` state, `window.innerWidth < 768`) — NOT CSS `md:hidden`
 - Bell shows unread count badge (red dot) from notifications table (`read_at IS NULL`)
@@ -505,16 +583,17 @@ Navbar has two variants: `variant="landing"` (default) and `variant="app"`.
 9. Leave review
 
 ### Worker Flow
-1. Register + ID document
-2. Admin verifies
-3. Browse open requests (in-app + WhatsApp notification)
-4. Send offer (price + datetime + note)
-5. Customer accepts → chat opens
-6. Customer pays → exact location visible
-7. Mark "En route" → customer gets live tracking
-8. Complete job
-9. Payment released after confirmation
-10. Receive rating
+1. Register at /worker/register (3-step form)
+2. Redirect to /worker/pending — awaits admin approval (24–48h)
+3. Admin verifies → worker_profiles.verified=true, is_active=true
+4. Worker receives WhatsApp + email notification
+5. Worker logs in → layout gate passes → /worker/dashboard
+6. Browse open requests (in-app + WhatsApp notification)
+7. Send offer (price + datetime + note)
+8. Customer accepts → chat opens
+9. Customer pays → exact location visible
+10. Mark "En route" → customer gets live tracking
+11. Complete job → payment released → receive rating
 
 ## Responsive Design Rules (Mobile-First)
 
@@ -572,3 +651,6 @@ This report is MANDATORY — never skip it, even if everything is fine.
 - [ ] Replace OpenStreetMap/Leaflet with Google Maps API
 - [ ] Add SMS/OTP verification instead of email
 - [ ] Epoint.az payment integration
+- [ ] Worker registration: add notifications INSERT (worker_pending_review) to
+      handleSubmit after worker_profiles insert. Deferred until admin panel is ready.
+      File: app/(worker)/worker/register/page.tsx — handleSubmit(), step 3 comment marked ⚠️ TODO

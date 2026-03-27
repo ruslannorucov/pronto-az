@@ -31,14 +31,15 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
   const router = useRouter();
   const isApp = variant === "app";
 
-  const [scrolled,     setScrolled]     = useState(false);
-  const [user,         setUser]         = useState<any>(null);
-  const [profile,      setProfile]      = useState<any>(null);
-  const [loading,      setLoading]      = useState(true);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [drawerOpen,   setDrawerOpen]   = useState(false);
-  const [unreadCount,  setUnreadCount]  = useState(0);
-  const [isMobile,     setIsMobile]     = useState(false);
+  const [scrolled,        setScrolled]        = useState(false);
+  const [user,            setUser]            = useState<any>(null);
+  const [profile,         setProfile]         = useState<any>(null);
+  const [loading,         setLoading]         = useState(true);
+  const [dropdownOpen,    setDropdownOpen]    = useState(false);
+  const [drawerOpen,      setDrawerOpen]      = useState(false);
+  const [unreadCount,     setUnreadCount]     = useState(0);
+  const [isMobile,        setIsMobile]        = useState(false);
+  const [workerVerified,  setWorkerVerified]  = useState<boolean | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,7 +48,6 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  // Track mobile breakpoint (< 768px)
   useEffect(() => {
     const check = () => {
       const mobile = window.innerWidth < 768;
@@ -86,6 +86,16 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
           .single();
         setProfile(p);
 
+        // Worker verified statusunu yoxla
+        if (p?.role === "worker") {
+          const { data: wp } = await supabase
+            .from("worker_profiles")
+            .select("verified")
+            .eq("user_id", user.id)
+            .single();
+          setWorkerVerified(wp?.verified ?? false);
+        }
+
         const { count } = await supabase
           .from("notifications")
           .select("*", { count: "exact", head: true })
@@ -99,7 +109,11 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
-      if (!session?.user) { setProfile(null); setUnreadCount(0); }
+      if (!session?.user) {
+        setProfile(null);
+        setUnreadCount(0);
+        setWorkerVerified(null);
+      }
     });
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -123,13 +137,17 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
     ? profile.full_name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()
     : "?";
 
+  // Worker üçün verified statusuna görə href və label
+  const workerDashboardHref =
+    workerVerified === true ? "/worker/dashboard" : "/worker/pending";
+
   const dashboardHref =
-    profile?.role === "worker" ? "/worker/panel" :
+    profile?.role === "worker" ? workerDashboardHref :
     profile?.role === "admin"  ? "/admin" :
     "/dashboard";
 
   const dashboardLabel =
-    profile?.role === "worker" ? "İş panelim" :
+    profile?.role === "worker" ? "İş paneli" :
     profile?.role === "admin"  ? "Admin" :
     "Sifarişlərim";
 
@@ -137,12 +155,6 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
     { label: "Xidmətlər",    href: "/categories" },
     { label: "Ustalar",      href: "/workers" },
     { label: "Necə İşləyir", href: "#how-it-works" },
-  ];
-
-  // Drawer sırası: Sifarişlərim birinci, sonra nav linklər
-  const drawerLinksLoggedIn = [
-    { label: dashboardLabel, href: dashboardHref, icon: "📋", highlight: true },
-    ...navLinks.map(l => ({ ...l, icon: "", highlight: false })),
   ];
 
   const AvatarCircle = ({ size = "sm" }: { size?: "sm" | "md" }) => {
@@ -172,7 +184,7 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
             Pronto<span className="text-[var(--primary)]">.</span>az
           </Link>
 
-          {/* ── Desktop nav linklər — yalnız landing, ortada ── */}
+          {/* ── Desktop nav linklər — yalnız landing ── */}
           {!isApp && (
             <div className="hidden md:flex items-center gap-8 flex-1">
               {navLinks.map((item) => (
@@ -184,15 +196,12 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
             </div>
           )}
 
-          {/* ── Sağ tərəf — həmişə right-aligned ── */}
+          {/* ── Sağ tərəf ── */}
           {!loading && (
             <div className="flex items-center gap-2 ml-auto">
 
               {user ? (
                 <>
-                  {/* ── LANDING + LOGGED IN ──
-                      Desktop: Sifariş ver · Sifarişlərim · Bell · Avatar
-                      Mobile:  Sifariş ver · Avatar · Hamburger             */}
                   {!isApp && (
                     <>
                       {/* Sifariş ver */}
@@ -201,10 +210,21 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
                         Sifariş ver
                       </button>
 
-                      {/* Sifarişlərim — yalnız desktop */}
+                      {/* Sifarişlərim / İş paneli — yalnız desktop */}
                       <Link href={dashboardHref}
-                        className="hidden md:inline-flex items-center px-4 py-2 rounded-full bg-[var(--primary)] text-white text-sm font-semibold hover:bg-[var(--primary-light)] transition-all">
+                        className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[var(--primary)] text-white text-sm font-semibold hover:bg-[var(--primary-light)] transition-all">
                         {dashboardLabel}
+                        {/* Worker pending badge */}
+                        {profile?.role === "worker" && workerVerified === false && (
+                          <span style={{
+                            fontSize: 9, fontWeight: 700,
+                            background: "#FEF3C7", color: "#92400E",
+                            padding: "1px 6px", borderRadius: 999,
+                            marginLeft: 2,
+                          }}>
+                            Gözlənilir
+                          </span>
+                        )}
                       </Link>
 
                       {/* Bell — yalnız desktop */}
@@ -223,8 +243,7 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
                     </>
                   )}
 
-                  {/* ── APP + LOGGED IN ──
-                      Mobile + Desktop: Bildiriş · Avatar              */}
+                  {/* Bell — app variant */}
                   {isApp && (
                     <Link href="/notifications"
                       className="relative flex w-9 h-9 rounded-full bg-[#FEF3C7] border-[1.5px] border-[#FCD34D] items-center justify-center text-[#D97706] hover:bg-[#FCD34D] transition-all">
@@ -240,7 +259,7 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
                     </Link>
                   )}
 
-                  {/* Avatar dropdown — hər yerdə */}
+                  {/* Avatar dropdown */}
                   <div className="relative" ref={dropdownRef}>
                     <button
                       onClick={() => { setDropdownOpen(!dropdownOpen); setDrawerOpen(false); }}
@@ -284,7 +303,7 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
                             Paramətrlər
                           </Link>
 
-                          {/* Bildirişlər — yalnız landing variantında dropdown-da görünür */}
+                          {/* Bildirişlər — yalnız landing */}
                           {!isApp && (
                             <Link href="/notifications" onClick={() => setDropdownOpen(false)}
                               className="flex items-center gap-3 px-4 py-2.5 text-[13px] text-[var(--navy)] hover:bg-[var(--gray-50)] transition-colors">
@@ -305,12 +324,23 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
                             </Link>
                           )}
 
-                          {/* Sifarişlərim — yalnız landing variantında, yalnız mobile-da */}
+                          {/* İş paneli / Sifarişlərim — worker üçün verified badge ilə */}
                           {!isApp && (
                             <Link href={dashboardHref} onClick={() => setDropdownOpen(false)}
                               className="md:hidden flex items-center gap-3 px-4 py-2.5 text-[13px] text-[var(--navy)] hover:bg-[var(--gray-50)] transition-colors">
-                              <span className="w-6 h-6 rounded-lg bg-[var(--primary-bg)] flex items-center justify-center text-xs shrink-0">📋</span>
-                              {dashboardLabel}
+                              <span className="w-6 h-6 rounded-lg bg-[var(--primary-bg)] flex items-center justify-center text-xs shrink-0">
+                                {profile?.role === "worker" ? "🔧" : "📋"}
+                              </span>
+                              <span className="flex-1">{dashboardLabel}</span>
+                              {profile?.role === "worker" && workerVerified === false && (
+                                <span style={{
+                                  fontSize: 9, fontWeight: 700,
+                                  background: "#FEF3C7", color: "#92400E",
+                                  padding: "1px 6px", borderRadius: 999,
+                                }}>
+                                  Gözlənilir
+                                </span>
+                              )}
                             </Link>
                           )}
                         </div>
@@ -326,7 +356,7 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
                     )}
                   </div>
 
-                  {/* Hamburger — yalnız landing, yalnız mobile (< 768px) */}
+                  {/* Hamburger — yalnız landing, yalnız mobile */}
                   {!isApp && isMobile && (
                     <button
                       onClick={() => { setDrawerOpen(!drawerOpen); setDropdownOpen(false); }}
@@ -368,48 +398,46 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
           )}
         </div>
 
-        {/* ── Mobile Drawer — yalnız landing ── */}
+        {/* ── Mobile Drawer ── */}
         {!isApp && (
           <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
             drawerOpen ? "max-h-[400px] border-t border-[var(--gray-100)]" : "max-h-0"
           }`}>
             <div className="bg-white px-4 pt-2 pb-5">
               <div className="space-y-0.5">
-
                 {user ? (
-                  /* Logged-in sırası: Sifarişlərim → divider → nav linklər */
                   <>
-                    {/* Sifarişlərim — highlighted, birinci */}
-                    <Link
-                      href={dashboardHref}
-                      onClick={() => setDrawerOpen(false)}
-                      className="flex items-center gap-3 px-3 py-3 rounded-xl text-[14px] font-semibold text-[var(--primary)] hover:bg-[var(--primary-bg)] transition-colors"
-                    >
-                      <span className="w-7 h-7 rounded-lg bg-[var(--primary-bg)] flex items-center justify-center text-sm shrink-0">📋</span>
-                      {dashboardLabel}
+                    {/* İş paneli / Sifarişlərim — highlighted */}
+                    <Link href={dashboardHref} onClick={() => setDrawerOpen(false)}
+                      className="flex items-center gap-3 px-3 py-3 rounded-xl text-[14px] font-semibold text-[var(--primary)] hover:bg-[var(--primary-bg)] transition-colors">
+                      <span className="w-7 h-7 rounded-lg bg-[var(--primary-bg)] flex items-center justify-center text-sm shrink-0">
+                        {profile?.role === "worker" ? "🔧" : "📋"}
+                      </span>
+                      <span className="flex-1">{dashboardLabel}</span>
+                      {profile?.role === "worker" && workerVerified === false && (
+                        <span style={{
+                          fontSize: 9, fontWeight: 700,
+                          background: "#FEF3C7", color: "#92400E",
+                          padding: "2px 8px", borderRadius: 999,
+                        }}>
+                          Gözlənilir
+                        </span>
+                      )}
                     </Link>
 
-                    {/* İncə xətt */}
                     <div className="my-1.5 border-t border-[var(--gray-100)]" />
 
-                    {/* Nav linklər */}
                     {navLinks.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setDrawerOpen(false)}
-                        className="flex items-center px-3 py-3 rounded-xl text-[14px] font-medium text-[var(--text-2)] hover:bg-[var(--gray-50)] hover:text-[var(--navy)] transition-colors"
-                      >
+                      <Link key={item.href} href={item.href} onClick={() => setDrawerOpen(false)}
+                        className="flex items-center px-3 py-3 rounded-xl text-[14px] font-medium text-[var(--text-2)] hover:bg-[var(--gray-50)] hover:text-[var(--navy)] transition-colors">
                         {item.label}
                       </Link>
                     ))}
                   </>
                 ) : (
-                  /* Logged-out: nav linklər */
                   <>
                     {navLinks.map((item) => (
-                      <Link key={item.href} href={item.href}
-                        onClick={() => setDrawerOpen(false)}
+                      <Link key={item.href} href={item.href} onClick={() => setDrawerOpen(false)}
                         className="flex items-center px-3 py-3 rounded-xl text-[14px] font-medium text-[var(--text-2)] hover:bg-[var(--gray-50)] hover:text-[var(--navy)] transition-colors">
                         {item.label}
                       </Link>
