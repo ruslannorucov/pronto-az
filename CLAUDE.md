@@ -66,6 +66,26 @@ These rules are mandatory and override all default assistant behaviours.
 - All code, variable names, file names, and comments
   must be in English.
 
+### 10. Credentials & Secrets — ABSOLUTE PROHIBITION
+- NEVER ask for, request, or encourage the user to share:
+  API keys, URLs containing tokens, passwords, secret keys,
+  console logs containing credentials, screenshots with
+  sensitive data, or any form of credentials.
+- If the user accidentally shares credentials (e.g. in a
+  console log, screenshot, or message) — immediately warn
+  them, do NOT use or store the value, and advise them to
+  rotate/reset the credential.
+- ONLY reference variable names, never actual values:
+    process.env.NEXT_PUBLIC_SUPABASE_URL
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+- If debugging requires checking env values, instruct the
+  user to check locally using safe methods (e.g. console.log
+  in their own terminal) — never ask them to paste output
+  that might contain secrets.
+- This rule CANNOT be overridden under any circumstances,
+  even if the user says "it's not a security issue."
+- Violation of this rule is a critical failure.
+
 ---
 
 ## Security Rules
@@ -128,7 +148,7 @@ Brand feel: Friendly + trustworthy (like Wolt, Airbnb)
 **Quick ref (primary brand values):**
 - Primary: `#1B4FD8` (CSS var: `--primary`) · Navy: `#0D1F3C` · Background: `#F8FAFF`
 - Headings: `Playfair Display` (font-serif) · All other text: `DM Sans` (font-sans)
-- Designed & completed pages: Landing Page + Order Form + Footer
+- Designed & completed pages: Landing Page + Order Form + Footer + Customer Dashboard
 - All other pages follow the same tokens until their design is added to DESIGN.md
 
 ## Tech Stack
@@ -137,46 +157,60 @@ Styling:       Tailwind CSS + shadcn/ui
 Database:      Supabase (PostgreSQL + Auth + Storage + Realtime)
 Deploy:        Vercel
 Notifications: Twilio WhatsApp Business API + Supabase Realtime (in-app)
+               NOTE: WhatsApp and in-app notifications are separate channels.
+               Always reference them distinctly in UI and code.
 Payment:       Epoint.az (post-MVP)
-Maps:          OpenStreetMap + Leaflet.js (cari məkan, marker sürüklə, reverse geocoding — Nominatim API)
-               ⚠️  Bu müvəqqəti həlldir. Post-MVP-də Google Maps JavaScript API +
-               Places API + Geocoding API ilə əvəz edilməlidir.
-               Env var: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY (hələ əlavə edilməyib)
+Maps:          OpenStreetMap + Leaflet.js (current location, marker drag, reverse geocoding — Nominatim API)
+               ⚠️  This is a temporary solution. Post-MVP: replace with Google Maps JavaScript API +
+               Places API + Geocoding API.
+               Env var: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY (not yet added)
 Development:   GitHub Codespaces (tablet-friendly)
 
-## Tamamlanmış Səhifələr / Komponentlər
+## Completed Pages / Components
 
-| Fayl | Status | Qeyd |
+| File | Status | Notes |
 |---|---|---|
-| `app/page.tsx` | ✅ Tamamlandı | Landing Page — Supabase ilə real data |
-| `app/(customer)/request/new/page.tsx` | ✅ Tamamlandı | 4 addımlı sifariş forması |
-| `components/Navbar.tsx` | ✅ Tamamlandı | Sticky, scroll shadow |
-| `components/Footer.tsx` | ✅ Tamamlandı | 5 sütun, sosial, app badges |
-| `components/MapPicker.tsx` | ✅ Tamamlandı | Leaflet + "Cari məkan" |
-| `app/globals.css` | ✅ Tamamlandı | Design tokens |
-| `lib/supabase/client.ts` | ✅ Tamamlandı | Browser client |
-| `lib/supabase/server.ts` | ✅ Tamamlandı | Server client |
+| `app/page.tsx` | ✅ Done | Landing Page — real data from Supabase |
+| `app/(auth)/login/page.tsx` | ✅ Done | Email + password login |
+| `app/(auth)/register/page.tsx` | ✅ Done | Customer + worker registration, email verify flow |
+| `app/(customer)/request/new/page.tsx` | ✅ Done | 4-step order form |
+| `app/(customer)/dashboard/page.tsx` | ✅ Done | Customer dashboard (client-side) |
+| `app/(customer)/dashboard/DashboardClient.tsx` | ✅ Done | Order states: searching / offer received / tracking |
+| `app/(customer)/layout.tsx` | ✅ Done | Customer layout with Navbar |
+| `middleware.ts` | ✅ Done | Route protection + role-based redirect |
+| `components/Navbar.tsx` | ✅ Done | Sticky, scroll shadow, auth-aware, avatar dropdown |
+| `components/Footer.tsx` | ✅ Done | 5 columns, social links, app badges |
+| `components/MapPicker.tsx` | ✅ Done | Leaflet + "Cari məkan" (current location) |
+| `app/globals.css` | ✅ Done | Design tokens |
+| `lib/supabase/client.ts` | ✅ Done | Browser client |
+| `lib/supabase/server.ts` | ✅ Done | Server client |
 
 ## Folder Structure
 app/
   (auth)/
-    login/page.tsx
-    register/page.tsx
+    login/page.tsx                ← ✅ Done
+    register/page.tsx             ← ✅ Done
   (customer)/
-    dashboard/page.tsx
-    request/new/page.tsx          ← ✅ Tamamlandı
-    request/[id]/page.tsx
+    layout.tsx                    ← ✅ Done
+    dashboard/
+      page.tsx                    ← ✅ Done
+      DashboardClient.tsx         ← ✅ Done
+    dashboard/history/page.tsx    ← pending
+    request/new/page.tsx          ← ✅ Done
+    request/[id]/page.tsx         ← pending (offer comparison)
   (worker)/
-    dashboard/page.tsx
-    profile/page.tsx
-    offers/page.tsx
+    dashboard/page.tsx            ← pending
+    profile/page.tsx              ← pending
+    offers/page.tsx               ← pending
   (admin)/
-    page.tsx
-  categories/page.tsx
-  workers/[id]/page.tsx
-  page.tsx                        ← ✅ Tamamlandı (landing page)
+    page.tsx                      ← pending
+  profile/page.tsx                ← pending (customer profile)
+  settings/page.tsx               ← pending
+  categories/page.tsx             ← pending
+  workers/[id]/page.tsx           ← pending
+  page.tsx                        ← ✅ Done (landing page)
   layout.tsx
-  globals.css                     ← ✅ Tamamlandı
+  globals.css                     ← ✅ Done
 components/
   ui/                             ← shadcn/ui components
   WorkerCard.tsx
@@ -185,14 +219,14 @@ components/
   OfferCard.tsx
   StarRating.tsx
   ChatWindow.tsx
-  Navbar.tsx                      ← ✅ Tamamlandı
-  Footer.tsx                      ← ✅ Tamamlandı
-  MapPicker.tsx                   ← ✅ Tamamlandı (Leaflet)
+  Navbar.tsx                      ← ✅ Done
+  Footer.tsx                      ← ✅ Done
+  MapPicker.tsx                   ← ✅ Done (Leaflet)
   WorkerTracker.tsx               ← real-time worker location map
 lib/
   supabase/
-    client.ts                     ← ✅ Tamamlandı
-    server.ts                     ← ✅ Tamamlandı
+    client.ts                     ← ✅ Done
+    server.ts                     ← ✅ Done
   utils.ts
 types/
   database.ts                     ← Supabase auto-generated types
@@ -204,7 +238,7 @@ docs/
 
 ### Tables
 profiles        -> id, full_name, phone, role (customer/worker/admin),
-                   avatar_url, city, created_at
+                   avatar_url, city, is_verified (bool), created_at
 
 worker_profiles -> user_id, category_id, bio, experience_years,
                    price_min, price_max, available_days (text[]),
@@ -250,63 +284,87 @@ notifications   -> id, user_id, type (text), title (text), body (text),
 
 ## Business Rules
 - Commission: 10% taken from every completed transaction
-- Payment model (MVP — Variant A, nağd ödəniş):
-    * Epoint.az inteqrasiyası post-MVP-ə buraxılıb
-    * MVP-də müştəri "Ödənişi təsdiqlə" düyməsinə basır
-    * Sistem avtomatik `payments` yazısı yaradır: `status: held`, `epoint_ref: null`
-    * Bu anda usta müştərinin dəqiq ünvanını görür
-    * İş bitdikdə müştəri "Tamamlandı" təsdiqləyir → `status: released`
+- Payment model (MVP — Variant A, cash payment):
+    * Epoint.az integration deferred to post-MVP
+    * In MVP, customer clicks "Confirm Payment"
+    * System auto-creates payments record: status: held, epoint_ref: null
+    * Worker sees customer's exact address only after payment
+    * Customer confirms "Completed" → status: released
 - Chat activates after offer is accepted
 - Customer exact location visible to worker ONLY after payment
 - Phone numbers NEVER exposed — all contact through in-app chat only
 - Worker registration: invite-only + admin verification + ID document required
 - Reviews ONLY for completed jobs
 - Scheduling:
-    EXACT: tarix (MiniCalendar) + saat (yarım saatlıq, 08:00–20:30)
-    FLEXIBLE: urgency (today/this_week/flexible) + zaman dilimi (səhər/gündüz/axşam)
-- Media uploads: şəkil + video, max 5 fayl, optional
+    EXACT: date (MiniCalendar) + time (30-min intervals, 08:00–20:30)
+    FLEXIBLE: urgency (today/this_week/flexible) + time of day (morning/afternoon/evening)
+- Media uploads: image + video, max 5 files, optional
 - Worker tracking: Supabase Realtime, current_lat/lng real-time update
+- Email verification:
+    * On signup, profiles.is_verified = false
+    * Auto-set to true when email confirmed (trigger)
+    * is_verified = true required to submit orders
+    * Unverified users see warning banner in dashboard
+
+## Order Status Flow
+open        → Customer submitted, searching for workers (no offers yet)
+open        → Offers received, customer comparing (offers exist)
+in_progress → Offer accepted, worker en route / working
+done        → Job completed, payment released
+cancelled   → Cancelled by customer or admin
+
+## Dashboard Order Display Logic
+| Condition | Label | UI |
+|---|---|---|
+| status=open, offers=0 | "Usta Axtarılır" | Pulse animation + progress bar |
+| status=open, offers>0 | "Təklif Gəldi" | Offer cards + compare CTA |
+| status=in_progress | "Aktiv · İzlə" | Tracking accordion + map |
+| status=done | Tarixçə | History page only |
 
 ## Notification System
 
 ### Channels
-- WhatsApp (Twilio Business API)
-- In-app (Supabase Realtime + notifications table)
+- WhatsApp (Twilio Business API) — external, async
+- In-app (Supabase Realtime + notifications table) — real-time, within platform
+- ⚠️ These are SEPARATE channels. Always reference them distinctly in UI copy.
+  Example: "WhatsApp bildirişi" vs "Tətbiq bildirişi"
 - Language: Azerbaijani
 
 ### Events & Templates
 
-#### Ustaya göndərilən bildirişlər:
-1. Yeni sorğu: kateqoriya, yer, vaxt, qısa təsvir + link
-2. Təklif qəbul edildi: müştəri adı, iş, qiymət + link
-3. Ödəniş alındı: məbləğ + link
-4. İş tamamlandı: ödəniş göndərildi + link
+#### Worker notifications:
+1. New request: category, location, time, short description + link
+2. Offer accepted: customer name, job, price + link
+3. Payment received: amount + link
+4. Job completed: payment sent + link
 
-#### Müştəriyə göndərilən bildirişlər:
-1. Usta təklif göndərdi: usta adı, reytinq, qiymət, vaxt + link
-2. Usta yola çıxdı: ad + izlə linki
+#### Customer notifications:
+1. Worker sent offer: worker name, rating, price, time + link
+2. Worker en route: name + tracking link
 
 ## MVP Scope
 IN SCOPE:
   - Landing page ✅
+  - Auth (login, register, email verification) ✅
+  - Customer dashboard ✅
   - Worker registration + profile
   - Worker catalog + search + filters
-  - Customer job request form (şəkil/video upload, xəritə, vaxt seçimi) ✅
+  - Customer job request form (image/video upload, map, time selection) ✅
   - Worker dashboard (requests, offers)
   - Offer system
   - In-app Realtime chat
   - Review + rating system
   - Admin panel
-  - WhatsApp + in-app notifications
+  - WhatsApp + in-app notifications (separate channels)
   - Urgent / available now filter
-  - Sub-categories (6 kateqoriya × 5 sub = 30)
-  - Payment flow (Variant A — nağd, mock escrow)
+  - Sub-categories (6 categories × 5 sub = 30)
+  - Payment flow (Variant A — cash, mock escrow)
   - Real-time worker location tracking (Leaflet)
-  - OpenStreetMap ilə ünvan seçimi (klik, sürüklə, cari məkan) ✅
+  - OpenStreetMap address selection (click, drag, current location) ✅
 
 OUT OF SCOPE (post-MVP):
   - Epoint.az payment integration
-  - Google Maps API (Places autocomplete, daha dəqiq geocoding)
+  - Google Maps API (Places autocomplete, precise geocoding)
   - Mobile app (iOS/Android)
   - AI matching algorithm
   - Subscription plans
@@ -364,10 +422,13 @@ OUT OF SCOPE (post-MVP):
 - Use shadcn/ui components wherever possible
 - Supabase RLS is active — always check auth.uid() in queries
 - Default to Server Components — use "use client" only when necessary
+  Exception: dashboard and auth-dependent pages use "use client" due to
+  Codespace cookie/session limitations
 - Playfair Display: h1, h2, h3, worker names, price elements (font-serif)
 - DM Sans: all other text (font-sans, default)
 - CSS variables: use `var(--primary)` not hardcoded `#1B4FD8`
 - Dynamic imports for client-only libraries (e.g. Leaflet): `dynamic(() => import(...), { ssr: false })`
+- Order IDs displayed as #PRN-XXXX (first 4 chars of UUID, uppercase)
 
 ## Language Rules
 - UI text: Azerbaijani (az)
@@ -375,22 +436,73 @@ OUT OF SCOPE (post-MVP):
 - Code (variables, functions, file names): English
 - Comments: English preferred
 
+## Navbar Behaviour
+
+Navbar has two variants: `variant="landing"` (default) and `variant="app"`.
+- `variant="landing"` → used on landing page (`app/page.tsx`)
+- `variant="app"` → used on all authenticated pages (`app/(customer)/layout.tsx`, etc.)
+
+### variant="landing"
+
+**Desktop (md+):**
+- Left: Logo + nav links (Xidmətlər, Ustalar, Necə İşləyir) — gap-12 from logo
+- Right: Sifariş ver + Sifarişlərim + Bell (yellow) + Avatar dropdown
+
+**Mobile (< 768px) — logged in:**
+- Left: Logo
+- Right: Sifariş ver + Avatar + Hamburger
+- Hamburger drawer contains: Sifarişlərim (first, highlighted) → divider → Xidmətlər, Ustalar, Necə İşləyir
+
+**Mobile (< 768px) — logged out:**
+- Left: Logo
+- Right: Sifariş ver + Hamburger
+- Hamburger drawer contains: Xidmətlər, Ustalar, Necə İşləyir → divider → Giriş + Usta ol
+
+### variant="app"
+
+**Desktop + Mobile — logged in:**
+- Left: Logo
+- Right: Bell (yellow, always visible) + Avatar dropdown
+- No hamburger, no nav links, no Sifariş ver
+
+### Avatar dropdown contents
+
+| Item | landing | app |
+|---|---|---|
+| Ad + email (header) | ✅ | ✅ |
+| Profil | ✅ | ✅ |
+| Paramətrlər | ✅ | ✅ |
+| Bildirişlər (badge) | ✅ | ❌ (navbar-da var) |
+| Sifarişlərim | Mobile only | ❌ |
+| Çıxış | ✅ | ✅ |
+
+### Notes
+- Hamburger is JS-controlled (`isMobile` state, `window.innerWidth < 768`) — NOT CSS `md:hidden`
+- Bell shows unread count badge (red dot) from notifications table (`read_at IS NULL`)
+- Drawer closes on backdrop click and on resize to desktop
+- Body scroll locked when drawer is open
+
 ## Core User Flows
 
 ### Customer Flow
 1. Browse categories or search
 2. Submit job request:
    - Step 1: Category + sub-category
-   - Step 2: Description + optional media (şəkil/video, max 5)
-   - Step 3: Location (MapPicker — klik/sürüklə/cari məkan) +
-             Vaxt: EXACT (MiniCalendar + yarım saatlıq saat) /
-                   FLEXIBLE (urgency + zaman dilimi)
-3. Receive offers (in-app + WhatsApp)
-4. Compare offers, accept one → chat aktivləşir
-5. "Ödənişi təsdiqlə" → payments yazısı (held)
-6. Worker marks "En route" → live tracking
-7. Worker completes → customer confirms → payment released
-8. Leave review
+   - Step 2: Description + optional media (image/video, max 5)
+   - Step 3: Location (MapPicker — click/drag/current location) +
+             Time: EXACT (MiniCalendar + 30-min intervals) /
+                   FLEXIBLE (urgency + time of day)
+   - Step 4: Success screen — pulse ring + bouncing dots + progress bar sweep
+             WhatsApp bildirişi (green) + tətbiq bildirişi (navy) shown separately
+             Order details summary (address, description, time)
+             "Sifarişlərimə get" → /dashboard
+3. Dashboard shows order in "Usta Axtarılır" state (pulse animation)
+4. Receive offers → dashboard shows "Təklif Gəldi" state
+5. Compare offers, accept one → chat opens
+6. "Confirm Payment" → payments record (held)
+7. Worker marks "En route" → live tracking in dashboard
+8. Worker completes → customer confirms → payment released
+9. Leave review
 
 ### Worker Flow
 1. Register + ID document
@@ -403,3 +515,60 @@ OUT OF SCOPE (post-MVP):
 8. Complete job
 9. Payment released after confirmation
 10. Receive rating
+
+## Responsive Design Rules (Mobile-First)
+
+### Philosophy
+Every UI component is written mobile-first.
+Tailwind classes are written small → large, never large only.
+
+  CORRECT:   px-4 sm:px-6 md:px-8 lg:px-16
+  WRONG:     px-16   ← desktop only, breaks mobile
+
+### Mandatory Check — Every Section / Component
+Before delivering ANY UI code, Claude MUST simulate the layout at:
+  1. 375px  — small phone (iPhone SE)
+  2. 390px  — standard phone (iPhone 14/15)
+  3. 768px  — tablet
+  4. 1280px — desktop
+
+Check each of the following:
+  - No hard-coded desktop-only padding/margin (px-16, px-[64px], etc.)
+  - No horizontal overflow at 375px
+  - All touch targets are minimum 44×44px
+  - Sticky/fixed bottom elements include iPhone safe area:
+      pb-[calc(1rem+env(safe-area-inset-bottom))]
+  - Text is readable at all sizes (minimum 11px, avoid fixed large sizes)
+  - Flex/grid rows do not overflow at small widths
+  - Hamburger menu exists for nav links hidden on mobile
+
+### Reporting Format
+After EVERY UI component or section delivered, Claude appends one of:
+
+  ✅ Responsivlik: Qaydasındadır (375px · 768px · 1280px yoxlanıldı)
+
+  ⚠️ Responsivlik: [konkret problem açıqlaması]
+
+This report is MANDATORY — never skip it, even if everything is fine.
+
+### Breakpoints Reference
+  mobile:  default (no prefix) — < 640px
+  sm:      640px+
+  md:      768px+
+  lg:      1024px+
+  xl:      1280px+
+
+### Common Fixes Reference
+  px-16 → px-4 md:px-8 lg:px-16
+  px-[64px] → px-4 md:px-8 lg:px-16
+  text-[44px] → text-[28px] sm:text-[36px] md:text-[44px]
+  fixed bottom CTA → add pb-[calc(1rem+env(safe-area-inset-bottom))]
+  hidden nav links → add hamburger menu for mobile
+
+---
+
+## Post-MVP Fixes (tracked)
+- [ ] Display UUIDs as #PRN-XXXX format in all UI (job_requests)
+- [ ] Replace OpenStreetMap/Leaflet with Google Maps API
+- [ ] Add SMS/OTP verification instead of email
+- [ ] Epoint.az payment integration

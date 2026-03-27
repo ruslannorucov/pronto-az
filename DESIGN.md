@@ -1,17 +1,17 @@
-# Pronto.az — UI Dizayn Spesifikasiyası
+# Pronto.az — UI Design Specification
 
-> **Əhatə:** Ana Səhifə (Landing Page) + Müştəri Sifariş Forması
-> **Qeyd:** Digər səhifələrin dizaynı (worker dashboard, customer dashboard, worker profile, admin panel, və s.) hələ tamamlanmayıb. Onlar yazıldıqca bu fayla əlavə ediləcək. O vaxta qədər bütün komponentlər aşağıdakı Design Tokens-ə uyğun brend stilini qoruyur.
+> **Scope:** Landing Page + Customer Order Form + Customer Dashboard + Worker Dashboard
+> **Note:** Other pages (worker dashboard, customer dashboard, worker profile, admin panel, etc.) are not yet designed. They will be added here as they are built. Until then, all components follow the Design Tokens below.
 > **Stack:** Next.js 14 · Tailwind CSS · shadcn/ui · Supabase
-> **Hibrid Yanaşma:** Web App tərzi (Ana Səhifə) + Mobil App tərzi (Forma)
+> **Hybrid Approach:** Web App style (Landing Page) + Mobile App style (Order Form + Dashboard)
 
 ---
 
-## 1. Dizayn Sistemi (Design Tokens)
+## 1. Design System (Design Tokens)
 
-### Rənglər
+### Colors
 
-| Token (CSS var) | Hex | İstifadə |
+| Token (CSS var) | Hex | Usage |
 |---|---|---|
 | `--primary` | `#1B4FD8` | Primary CTA, active state, link |
 | `--primary-light` | `#2563EB` | Hover state |
@@ -32,21 +32,21 @@
 | `--gray-600` | `#4A5878` | Secondary text |
 | `--green` | `#10B981` | Verified badge, success |
 | `--green-bg` | `#D1FAE5` | Success background |
-| `--orange` | `#F59E0B` | "Populyar" badge, warning |
+| `--orange` | `#F59E0B` | "Popular" badge, warning |
 | `--orange-pale` | `#FEF3C7` | Warning background |
 | `--accent` | `#E8521A` | Accent color |
 | `--accent-bg` | `#FFF4EE` | Accent background |
 
-### Tipografiya
+### Typography
 
 ```css
-/* Display / Başlıqlar */
+/* Display / Headings */
 font-family: 'Playfair Display', serif;   /* CSS var: var(--font-playfair) */
-/* Body / UI elementləri */
+/* Body / UI elements */
 font-family: 'DM Sans', sans-serif;        /* CSS var: var(--font-dm-sans) */
 ```
 
-| Rol | Font | Ölçü | Çəki |
+| Role | Font | Size | Weight |
 |---|---|---|---|
 | Hero title | Playfair Display | 52px | 800 |
 | Section title | Playfair Display | 30px | 700 |
@@ -55,14 +55,13 @@ font-family: 'DM Sans', sans-serif;        /* CSS var: var(--font-dm-sans) */
 | Button | DM Sans | 14px | 600 |
 | Label / tag | DM Sans | 11–12px | 500–700 |
 
-**Tailwind class-ları:**
+**Tailwind classes:**
 - `font-serif` → Playfair Display
 - `font-sans` → DM Sans (default body)
 
-### Radius & Kölgə
+### Radius & Shadow
 
 ```css
-/* Kod-da birbaşa Tailwind class-ları istifadə edilir */
 rounded-lg   → 16px
 rounded-xl   → ~18px
 rounded-2xl  → 24px
@@ -74,11 +73,9 @@ shadow-lg  → 0 8px 32px rgba(13,31,60,0.18)
 shadow-xl  → 0 16px 48px rgba(13,31,60,0.22)
 ```
 
-### Kateqoriya Kart Rəngləri (bannerGradients)
+### Category Card Colors (bannerGradients)
 
-Worker kartı banner və kateqoriya badge-ləri üçün:
-
-| Index | Gradient (Tailwind) | Kateqoriya |
+| Index | Gradient (Tailwind) | Category |
 |---|---|---|
 | 0 | `from-[#1B4FD8] to-[#2563EB]` | Santexnik |
 | 1 | `from-[#B45309] to-[#D97706]` | Elektrik |
@@ -89,35 +86,82 @@ Worker kartı banner və kateqoriya badge-ləri üçün:
 
 ---
 
-## 2. Ana Səhifə (Landing Page)
+## 2. Landing Page
 
-> **Tamamlanmış:** `app/page.tsx`
-> **Məqsəd:** İstifadəçi sayta girən kimi böyük axtarış çubuğunu və xidmətləri rahat görsün.
+> **Completed:** `app/page.tsx`
 
 ### 2.1 Navbar (`components/Navbar.tsx`)
 
+Two variants: `variant="landing"` (default) and `variant="app"`.
+
+#### variant="landing" — Desktop (md+)
 ```
-[ Pronto.az logo ]    [ Xidmətlər | Ustalar | Necə İşləyir | Qiymətlər ]    [ Usta ol (outline) | Sifariş ver (primary) ]
+[ Pronto.az ]  gap-12  [ Xidmətlər | Ustalar | Necə İşləyir ]    [ Sifariş ver | Sifarişlərim | 🔔 | Avatar ▾ ]
 ```
 
-**Xüsusiyyətlər:**
-- `position: sticky; top: 0` — scroll-da qalır
-- Scroll-da `shadow-[0_2px_12px_rgba(13,31,60,0.08)]` əlavə olunur
-- Background: `white` + `border-bottom: 1px solid --border`
-- Height: `68px`, padding: `0 64px`
-- Logo: Playfair Display, `--navy` + `.` nöqtəsi `--primary` rəngdə
-- Nav linklər: `text-sm font-medium text-[--gray-600]`, hover: `--primary`
-- "Usta ol" düyməsi: `border-[1.5px] border-[--gray-200]`, hover: `--primary`
-- "Sifariş ver" düyməsi: `bg-[--primary]`, `border-radius: full`, `font-weight: 600`
+#### variant="landing" — Mobile logged-in
+```
+[ Pronto.az ]    [ Sifariş ver | Avatar ▾ | ☰ ]
+```
+Hamburger drawer (top → bottom):
+- 📋 Sifarişlərim — `text-[var(--primary)]`, `bg-[var(--primary-bg)]`
+- `border-t border-[var(--gray-100)]` — incə xətt
+- Xidmətlər
+- Ustalar
+- Necə İşləyir
+
+#### variant="landing" — Mobile logged-out
+```
+[ Pronto.az ]    [ Sifariş ver | ☰ ]
+```
+Hamburger drawer:
+- Xidmətlər, Ustalar, Necə İşləyir
+- `border-t` + `grid grid-cols-2`: Giriş | Usta ol
+
+#### variant="app" — Desktop + Mobile
+```
+[ Pronto.az ]    [ 🔔 | Avatar ▾ ]
+```
+No hamburger. No nav links. No Sifariş ver.
+
+**Navbar specs:**
+- `position: sticky; top: 0; z-index: 50`
+- Scroll shadow: `shadow-[0_2px_12px_rgba(13,31,60,0.08)]`
+- Height: `68px`
+- Padding: `px-4 md:px-8 lg:px-[64px]`
+- Logo: Playfair Display, `--navy` + `.` dot in `--primary`
+- Container: `flex items-center gap-12`
+
+**Hamburger:**
+- SVG icon (3 lines ↔ X), controlled by `isMobile` JS state (`window.innerWidth < 768`)
+- Button: `w-9 h-9 rounded-full bg-[var(--gray-100)]`
+- Drawer: `max-h-0` → `max-h-[400px]`, `transition-all duration-300 ease-in-out`
+- Backdrop: `bg-[rgba(13,31,60,0.25)]`, closes drawer on click
+
+**Avatar dropdown:**
+```
+┌─────────────────────────┐
+│ [Avatar]  Ad            │
+│           email         │
+├─────────────────────────┤
+│ 👤  Profil              │
+│ ⚙️  Paramətrlər         │
+│ 🔔  Bildirişlər  (3)   │  ← yalnız landing
+│ 📋  Sifarişlərim        │  ← yalnız landing mobile
+├─────────────────────────┤
+│ 🚪  Çıxış               │
+└─────────────────────────┘
+```
+Width: `220px`, `rounded-2xl`, `shadow-[0_8px_32px_rgba(13,31,60,0.12)]`
 
 ### 2.2 Hero Section
 
-**Fon:**
+**Background:**
 ```jsx
 className="bg-gradient-to-br from-[#0D1F3C] via-[#162F6A] to-[#1E1B6E]"
 ```
 
-**Grid overlay effekti:**
+**Grid overlay effect:**
 ```jsx
 style={{
   backgroundImage: "linear-gradient(rgba(27,79,216,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(27,79,216,0.07) 1px, transparent 1px)",
@@ -126,289 +170,503 @@ style={{
 }}
 ```
 
-**Radial glow-lar:**
-- Sağ yuxarı: `rgba(27,79,216,0.25)`, `600x600px`
-- Sol aşağı: `rgba(30,27,110,0.4)`, `400x400px`
+**Content centered:** `flex flex-col items-center text-center`
 
-**Hero məzmunu mərkəzləşdirilib:** `flex flex-col items-center text-center`
-
-**Badge:**
-```jsx
-className="inline-flex items-center gap-1.5 rounded-full
-           border border-[rgba(147,180,255,0.25)] bg-[rgba(27,79,216,0.18)]
-           px-3.5 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#93B4FF]"
-```
-
-**Başlıq:**
-```jsx
-<h1 className="font-serif text-[44px] md:text-[52px] font-extrabold text-white leading-[1.15] max-w-[620px] mx-auto">
-  Evdə problem?
-  <em className="not-italic bg-gradient-to-r from-[#93B4FF] to-[#60A5FA] bg-clip-text text-transparent">
-    Pronto
-  </em> həll edir.
-</h1>
-```
-
-**Axtarış çubuğu:**
+**Search bar:**
 - Container: `bg-white, border-radius: 24px, padding: 6px, shadow-xl, max-w-[660px], mx-auto, w-full`
-- Sol: şəhər seçimi + "Şəhər" label-i + `border-right: 1.5px solid --border`, `min-w-[160px]`
-- Orta: `<input>` placeholder ilə, `text-[15px]`
-- Sağ: `48x48px` mavi `border-radius: 16px` axtarış düyməsi
+- Left: city select + "Şəhər" label + `border-right: 1.5px solid --border`
+- Middle: `<input>` with placeholder
+- Right: `48x48px` blue `border-radius: 16px` search button
 
-**Chip-lər:**
-- `rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-[13px]`
-- Hover: `bg-white/18 text-white`
-- Layout: `flex flex-wrap gap-2 justify-center`
-
-**Statistika sırası:**
+**Stats row:**
 - Layout: `flex flex-wrap justify-center border-t border-white/8 pt-9 w-full max-w-2xl`
-- Hər stat: `flex-1 text-center px-8`, aralarında `border-r border-white/8`
-- Rəqəm: Playfair Display `30px`, bold, white
-- Etiket: DM Sans `12px`, `text-white/45`
+- Each stat: `flex-1 text-center px-8`, separated by `border-r border-white/8`
+- Number: Playfair Display `30px`, bold, white
+- Label: DM Sans `12px`, `text-white/45`
 
-### 2.3 Kateqoriyalar Bölməsi
+### 2.3 Categories Section
 
-**Fon:** `bg-white py-20 px-16`
+**Background:** `bg-white py-20 px-16`
 
 **Grid:** `grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4`
 
-**Data:** Supabase-dən real data (`parent_id IS NULL`, usta sayı `worker_profiles (count)` ilə)
+**Data:** Real from Supabase (`parent_id IS NULL`, worker count via `worker_profiles (count)`)
 
-**Featured kart (ilk kateqoriya — 2 sütun):**
+**Featured card (first category — 2 cols):**
 ```jsx
-className="col-span-2 flex items-center gap-5 bg-gradient-to-br from-[#1B4FD8] to-[#2563EB] rounded-2xl p-7 cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(27,79,216,0.35)]"
-// İkon: 56x56px, bg-white/15, rounded-xl içində
-// Usta sayı: "X usta hazır" — 0 isə "Ustalar gəlir"
+className="col-span-2 flex items-center gap-5 bg-gradient-to-br from-[#1B4FD8] to-[#2563EB] rounded-2xl p-7"
+// Icon: 56x56px, bg-white/15, rounded-xl
+// Worker count: "X usta hazır" — if 0: "Ustalar gəlir"
 ```
 
-**Normal kart:**
+**Normal card:**
 ```jsx
 className="bg-[--gray-50] rounded-2xl px-4 py-6 text-center border-[1.5px] border-[--gray-200]
            hover:border-[--primary] hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(27,79,216,0.13)] hover:bg-white"
-// İkon: 28px
-// Usta sayı: 0 isə "Tezliklə"
+// Icon: 28px
+// Worker count: 0 → "Tezliklə"
 ```
 
-### 2.4 "Necə İşləyir" Bölməsi
+### 2.4 How It Works Section
 
-**Fon:** `bg-gradient-to-br from-[#0D1F3C] to-[#162F6A] px-16 py-20` + grid overlay
+**Background:** `bg-gradient-to-br from-[#0D1F3C] to-[#162F6A] px-16 py-20` + grid overlay
 
-**Grid:** `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5`
-
-**Step kart:**
+**Step card:**
 ```jsx
 className="bg-white/5 border border-white/8 rounded-2xl p-7 hover:bg-white/8"
 ```
-- Nömrə: Playfair Display `52px`, `rgba(27,79,216,0.3)`
-- İkon: `28px` emoji
-- Başlıq: `15px font-semibold white`
-- Açıqlama: `13px text-white/50 leading-relaxed`
-- Connector xətti (desktop): `hidden lg:block absolute top-10 -right-3 w-6 h-[1.5px] bg-white/10`
+- Number: Playfair Display `52px`, `rgba(27,79,216,0.3)`
+- Icon: `28px` emoji
+- Title: `15px font-semibold white`
+- Description: `13px text-white/50 leading-relaxed`
 
-**CTA düyməsi:** `bg-[--primary] rounded-full px-7 py-3.5`
+### 2.5 Worker Cards
 
-### 2.5 Usta Kartları
-
-**Fon:** `bg-[--gray-50] py-20 px-16`
+**Background:** `bg-[--gray-50] py-20 px-16`
 
 **Grid:** `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5`
 
-**Göstərmə şərti:** Yalnız `is_active=true, verified=true` ustalar — boşdursa bölmə görünmür
-
-**Kart strukturu:**
-- Banner: `80px`, gradient (bannerGradients-dən)
-- Avatar: `60x60px`, `rounded-full`, `border-3px white`, `absolute -bottom-[30px] left-5`
-- Body padding: `pt-10 px-5 pb-5`
-- Başlıq: `font-serif 16px font-semibold`
-
-**Düymələr:**
-- "Profil" → outline blue, `flex-1`
-- "Sifariş ver" → solid blue, `flex-1`
+**Show condition:** Only `is_active=true, verified=true` — section hidden if empty
 
 ---
 
-## 3. Sifariş Forması (Order Form)
+## 3. Order Form
 
-> **Tamamlanmış:** `app/(customer)/request/new/page.tsx`
-> **Məqsəd:** Mobil-optimized, 4 addımlı sifariş forması
+> **Completed:** `app/(customer)/request/new/page.tsx`
+> **Purpose:** Mobile-optimized, 4-step order form
 
-### 3.1 Forma Arxitekturası
+### 3.1 Form Architecture
 
 ```
-Addım 1         Addım 2              Addım 3         Addım 4
-Kateqoriya  →   Problem + Media  →   Ünvan & Vaxt →  Təkliflər
-Seç             İzah et              Seç             Müqayisə et
+Step 1        Step 2             Step 3          Step 4
+Category  →   Problem + Media →  Address & Time → Offers
+Select        Describe           Select           Compare
 ```
 
-**Layout:** `max-w-lg mx-auto` — mobil görünüş
+**Layout:** `max-w-lg mx-auto`
 
 **App header (sticky):**
 ```jsx
 className="bg-white/90 backdrop-blur-md border-b border-[--gray-200] px-5 pt-4 sticky top-0 z-10"
-// Geri düyməsi: 36x36px rounded-full bg-[--gray-100]
-// Başlıq + "Addım X / 4"
-// Sağda: animated step dots
 ```
 
-**Progress bar:** `h-0.5 flex-1 rounded-full`, aktiv: `bg-[--primary]`, passiv: `bg-[--gray-200]`, `transition-all duration-500`
+**Progress bar:** `h-0.5 flex-1 rounded-full`, active: `bg-[--primary]`, inactive: `bg-[--gray-200]`
 
 **Sticky CTA:**
 ```jsx
 className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto px-5 py-4 bg-white/90 backdrop-blur-md border-t"
-// Aktiv: bg-[--primary] shadow-[0_4px_16px_rgba(27,79,216,0.3)]
+// Active: bg-[--primary] shadow-[0_4px_16px_rgba(27,79,216,0.3)]
 // Disabled: bg-[--gray-200] text-[--gray-400] cursor-not-allowed
 ```
 
-### 3.2 Addım 1 — Kateqoriya Seçimi
+### 3.2 Step 1 — Category Selection
 
-**Başlıq:** `22px font-bold`
+**Heading:** `22px font-bold`
 
-**Kateqoriya grid:** `grid-cols-3 gap-3`
+**Category grid:** `grid-cols-3 gap-3`
 
-**Kateqoriya kart:**
+**Category card:**
 ```jsx
 // Normal
-className="rounded-2xl py-4 px-3 text-center border-[1.5px] border-[--gray-200] bg-white hover:border-[--primary-mid] hover:shadow-sm"
+className="rounded-2xl py-4 px-3 text-center border-[1.5px] border-[--gray-200] bg-white"
 // Selected
 className="bg-[--primary] border-[--primary] shadow-[0_4px_16px_rgba(27,79,216,0.3)]"
-// Selected indicator: top-right ağ nöqtə
-// İkon: text-2xl, ad: text-[11px] font-bold
-// Seçiləndə mətn: text-white
+// Selected indicator: top-right white dot
 ```
 
-**Alt kateqoriya separator:**
-```jsx
-<div className="flex items-center gap-3 mb-4">
-  <div className="h-px flex-1 bg-[--gray-200]" />
-  <p className="text-[11px] font-bold text-[--gray-400] uppercase tracking-wider">Alt kateqoriya</p>
-  <div className="h-px flex-1 bg-[--gray-200]" />
-</div>
-```
-
-**Alt kateqoriya pill:**
-```jsx
-// Normal
-className="text-[12px] font-semibold px-4 py-2 rounded-full border-[1.5px] border-[--gray-200] bg-white text-[--navy]"
-// Selected
-className="bg-[--primary] border-[--primary] text-white shadow-sm"
-```
-
-**Davranış:**
-- Əsas kateqoriya seçilmədən alt kateqoriyalar görünmür
-- Hər ikisi seçilmədən "Növbəti" disabled
-- Kateqoriya dəyişdikdə alt kateqoriya sıfırlanır
-
-### 3.3 Addım 2 — Problem İzahı + Media
-
-**Textarea:**
-```jsx
-className="w-full border-[1.5px] border-[--gray-200] rounded-2xl p-4 text-[14px] bg-white resize-none
-           focus:border-[--primary] focus:shadow-[0_0_0_3px_rgba(27,79,216,0.08)] leading-relaxed"
-// Validation indicator: "✓ Kifayət qədər" (green) / "Minimum 10 simvol (X/10)" (gray)
-```
+### 3.3 Step 2 — Problem + Media
 
 **Media Upload (Optional):**
 - Badge: `{count}/5 · Optional`
-- Drop zone: drag & drop dəstəyi, `border-2 border-dashed`, hover + drag-over state
-- `accept="image/*,video/*"` — həm şəkil həm video
+- Drop zone: drag & drop, `border-2 border-dashed`
+- `accept="image/*,video/*"`
 - Thumbnail: `72x72px rounded-xl`
-- Sil düyməsi: `-top-1.5 -right-1.5`, `w-5 h-5`, navy → hover: red-500
-- Video thumbnail: 🎬 ikonu ilə fərqləndirilir
-- Max: 5 fayl
+- Delete button: `-top-1.5 -right-1.5`, `w-5 h-5`, navy → hover: red-500
+- Video thumbnail: 🎬 icon
+- Max: 5 files
 
-### 3.4 Addım 3 — Ünvan & Vaxt
+### 3.4 Step 3 — Address & Time
 
-**Xəritə (`components/MapPicker.tsx`):**
-- Kitabxana: Leaflet.js + OpenStreetMap
-- Hündürlük: `220px`
-- Funksiyalar: klik, marker sürüklə, "Cari məkan" düyməsi
-- "Cari məkan" düyməsi: `absolute top-3 left-3 z-[1000]`, ağ bg, `--primary` rəng
+**Map (`components/MapPicker.tsx`):**
+- Library: Leaflet.js + OpenStreetMap
+- Height: `220px`
+- Features: click, drag marker, "Cari məkan" button
+- "Cari məkan" button: `absolute top-3 left-3 z-[1000]`, white bg, `--primary` color
 - Reverse geocoding: Nominatim API
-- Ünvan sətri: xəritənin altında, `✓ Seçildi` badge
-- ⚠️ Post-MVP: Google Maps API ilə əvəz ediləcək
+- Address line below map, `✓ Seçildi` badge
+- ⚠️ Post-MVP: Replace with Google Maps API
 
-**Ünvan input card (iOS Settings stili):**
-```jsx
-className="bg-white rounded-2xl border border-[--gray-200] overflow-hidden shadow-sm"
-// İçi: 2 input, aralarında border-t
-// Label: text-[11px] font-bold uppercase tracking-wider
-// Input: bg-transparent, no border, outline-none
-```
-
-**Vaxt növü kartları:** `grid grid-cols-2 gap-3`
-```jsx
-// Normal
-className="flex flex-col items-start gap-1 p-4 rounded-2xl border-[1.5px] border-[--gray-200] bg-white text-left"
-// Selected
-className="border-[--primary] bg-[--primary-bg] shadow-sm"
-// İkon: text-2xl, başlıq: 13px font-bold, alt mətn: 11px text-[--gray-400]
-```
+**Time type cards:** `grid grid-cols-2 gap-3`
 
 **Custom MiniCalendar:**
-- Azərbaycan ayları və günlər
-- Keçmiş günlər: disabled + `text-[--gray-200]`
-- Bugün: `ring-1 ring-[--primary] text-[--primary]`
-- Seçili: `bg-[--primary] text-white shadow-sm`
-- Əvvəl/sonra ay naviqasiyası
+- Azerbaijani months and days
+- Past days: disabled + `text-[--gray-200]`
+- Today: `ring-1 ring-[--primary] text-[--primary]`
+- Selected: `bg-[--primary] text-white shadow-sm`
 
-**Saat seçimi:** `grid grid-cols-4 gap-2`
-- Yarım saatlıq intervallar: 08:00 – 20:30
-- Normal: `bg-white border-[--gray-200] text-[--navy]`
-- Selected: `bg-[--primary] border-[--primary] text-white`
+**Time selection:** `grid grid-cols-4 gap-2`
+- 30-minute intervals: 08:00 – 20:30
 
-**Çevik vaxt urgency:** `grid grid-cols-3 gap-2.5`
-- "Bu gün" ⚡, "Bu həftə" 📅, "Çevik" 🔄
-- Seçiləndə: `bg-[--primary] text-white`
-
-**Zaman dilimi:** `space-y-2.5`, hər biri full-width card
-- Səhər 🌅, Gündüz ☀️, Axşam 🌆
-- Seçiləndə: `bg-[--primary-bg] border-[--primary]` + `✓` badge
-
-### 3.5 Addım 4 — Gələn Təkliflər
+### 3.5 Step 4 — Offers
 
 **Success banner:**
 ```jsx
 className="bg-gradient-to-br from-[#D1FAE5] to-[#A7F3D0] rounded-2xl p-5 border border-[#6EE7B7]"
-// İkon container: w-10 h-10 bg-[--green] rounded-xl
-// Başlıq: text-[14px] font-bold text-[#065f46]
-// Alt mətn: text-[12px] text-[#059669]
 ```
 
 **Empty state:**
 ```jsx
 className="bg-white rounded-2xl border border-[--gray-200] p-8 text-center shadow-sm"
-// İkon container: w-16 h-16 bg-[--gray-100] rounded-2xl mx-auto
-// "15–45 dəqiqə" bold vurğulanır
+// "15–45 dəqiqə" bolded
 ```
 
 ---
 
-## 4. Footer (`components/Footer.tsx`)
+## 4. Customer Dashboard
 
-**Fon:** `#0A1628` (hero-dan tünd) + `border-t border-white/8`
+> **Completed:** `app/(customer)/dashboard/DashboardClient.tsx`
+> **Architecture:** "use client" — browser-side Supabase queries (Codespace cookie limitation)
 
-**Layout:** `grid-cols-1 md:grid-cols-5 gap-12`
+### 4.1 Order States
 
-**Brand sütunu (col-span-2):**
-- Logo: Playfair Display, ağ + mavi nöqtə
-- Təsvir: `text-[14px] text-white/45`, max-w-[280px]
-- Sosial linklər: `w-9 h-9 rounded-full bg-white/8 border border-white/10`, hover: `bg-[--primary]`
-- App badges (App Store + Google Play): `bg-white/8 border border-white/10 rounded-xl`
+#### State 1 — Searching for worker (status=open, no offers)
+```jsx
+// Dark navy gradient background panel
+// Pulse ring animation around category icon
+// Bouncing dots: "Ustalar sifarişinizi görür..."
+// Animated progress bar (left-to-right sweep)
+// ETA text: "Adətən 15–45 dəq ərzində təklif gəlir"
+// Cancel button: border, hover → red
+```
 
-**Link sütunları (3 ədəd):**
-- Xidmətlər, Şirkət, Dəstək
-- Başlıq: `text-[12px] font-bold text-white/90 uppercase tracking-widest`
-- Linklər: `text-[14px] text-white/45 hover:text-white`
+#### State 2 — Offers received (status=open, offers > 0)
+```jsx
+// Blue border card: border-[1.5px] border-[--primary]
+// Blinking dot badge: "X yeni təklif"
+// Offer preview cards (worker name, rating, price)
+// "Müqayisə et və seç →" CTA button
+```
 
-**Alt sətir:**
-- Copyright: `text-[13px] text-white/30`
-- Sistem statusu: yaşıl `animate-pulse` nöqtə + "Bütün sistemlər işləyir"
+#### State 3 — Worker en route (status=in_progress)
+```jsx
+// Green border card: border-[1.5px] border-[#A7F3D0]
+// Accordion: click header to expand/collapse
+// Step progress: Qəbul ✓ → Ödəniş ✓ → Yolda (active, pulse) → Gəldi → Bitdi
+// Mini map: grid bg, red pin (you), dashed line, walking worker emoji
+// ETA badge top-right of map
+```
+
+### 4.2 Dashboard Layout
+
+**Desktop:** `grid-cols-1 lg:grid-cols-2 gap-4`
+- Left: Cavab Gözləyir + Usta Axtarılır sections
+- Right: Aktiv (tracking) + Tarixçə link
+
+**Mobile:** Single column, same priority order
+
+**Priority order (top to bottom):**
+1. "Təklif Gəldi" (offers waiting for acceptance)
+2. "Usta Axtarılır" (open, no offers yet)
+3. "Aktiv · İzlə" (in_progress, tracking)
+4. "Tarixçə" link
+
+**Tarixçə link:**
+```jsx
+className="flex items-center justify-between bg-[--gray-100] rounded-2xl px-4 py-3.5"
+// Icon: 🔄
+// Label: "Tarixçə" + "Tamamlanmış sifarişlər"
+```
+
+### 4.3 Email Verification Banner
+```jsx
+className="bg-[#FEF3C7] border border-[#FCD34D] rounded-xl px-4 py-3"
+// Only shown when is_verified = false
+// "Emaili yoxla" button → #F59E0B background
+```
 
 ---
 
-## 5. Komponent Kitabxanası (Reusable)
+## 5. Worker Dashboard
 
-### Düymələr
+> **File:** `app/(worker)/dashboard/WorkerDashboardClient.tsx`
+> **Architecture:** "use client" — 3-tab mobile-first layout
+> **Target audience:** Middle/senior aged tradespeople — large text, simple UI, minimal cognitive load
+
+### 5.1 Header
+
+```jsx
+className="bg-gradient-to-br from-[#1B4FD8] to-[#2563EB] px-4 py-3"
+```
+- Left: Logo `Pronto.az` (Playfair Display, white)
+- Right: usta adı + reytinq (`text-[11px] text-white/65`)
+
+### 5.2 Tab Bar
+
+3 tab: **Yeni işlər** / **Aktiv işlərim** / **Keçmiş**
+
+```jsx
+// Tab container
+className="flex bg-white border-b border-[--gray-200]"
+
+// Inactive tab
+className="flex-1 text-center py-2.5 text-[11px] font-medium text-[--text-3]
+           border-b-2 border-transparent"
+
+// Active tab
+className="flex-1 text-center py-2.5 text-[11px] font-medium text-[--primary]
+           border-b-2 border-[--primary]"
+```
+
+- "Yeni işlər" tabında unread badge: `absolute top-[7px] right-[12px] w-[5px] h-[5px] rounded-full bg-[--accent]`
+
+### 5.3 Tab 1 — Yeni işlər
+
+**Page background:** `bg-[--gray-50]`
+
+**Section label:**
+```jsx
+className="text-[9px] font-bold text-[--text-3] tracking-[0.06em] uppercase px-3 py-2.5"
+```
+
+**Sifariş kartı:**
+```jsx
+// Card
+className="bg-white rounded-2xl border-[0.5px] border-[--gray-200] mb-2 overflow-hidden"
+
+// Card body
+className="px-3 py-2.5"
+
+// Category + badge row
+<div className="flex justify-between items-start mb-1">
+  <span className="text-[12px] font-bold text-[--navy]">{category}</span>
+  <span className="text-[9px] font-bold text-[--primary] bg-[--primary-bg] px-[7px] py-[2px] rounded-full">
+    Yeni
+  </span>
+</div>
+
+// Meta (location + time)
+className="text-[10px] text-[--text-2] mb-1.5"
+
+// Description
+className="text-[10px] text-[--text-3] leading-[1.4]"
+
+// Footer
+className="border-t border-[--gray-100] px-3 py-[7px] flex items-center justify-between"
+```
+
+**"Keç" davranışı (local only — Supabase-ə yazılmır):**
+- Basıldıqda: `opacity-40`, kart siyahının sonuna `appendChild` ilə keçir (350ms delay)
+- Badge `"Yeni"` → `"Keçildi"` (`bg-[--gray-100] text-[--text-3]`)
+- İlk "keçildi" kartından əvvəl `"Keçilmiş sifarişlər"` divider yaranır
+- Səhifə yenidən yüklənəndə: orijinal sıra bərpa olunur (server-dən gəlir)
+
+**"Təklif ver" düyməsi:**
+```jsx
+className="px-3 py-[6px] rounded-lg text-[10px] font-semibold text-white border-none cursor-pointer
+           bg-gradient-to-br from-[#1B4FD8] to-[#2563EB]
+           shadow-[0_2px_8px_rgba(27,79,216,0.2)]
+           hover:shadow-[0_4px_12px_rgba(27,79,216,0.3)] hover:-translate-y-px"
+```
+→ `SendOfferModal` açır
+
+### 5.4 SendOfferModal
+
+**Bottom sheet — slide-up animation:**
+```jsx
+// Overlay
+className="absolute inset-0 bg-[rgba(13,31,60,0.5)] backdrop-blur-[4px] z-10
+           flex items-end rounded-b-[26px]"
+// transition: opacity 0.25s ease
+// pointer-events: none when hidden
+
+// Modal sheet
+className="bg-white rounded-t-[20px] rounded-b-[26px] w-full px-[14px] pt-[16px] pb-[14px]"
+// transform: translateY(100%) → translateY(0)
+// transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)
+```
+
+**Handle bar:**
+```jsx
+className="w-8 h-[3px] rounded-full bg-[--gray-200] mx-auto mb-[14px]"
+```
+
+**3 sahə:**
+
+```jsx
+// 1. Qiymət — böyük serif input
+<div className="flex items-center bg-[--gray-50] border-[1.5px] border-[--gray-200]
+                rounded-xl px-3 py-2 mb-2.5 focus-within:border-[--primary] focus-within:bg-white">
+  <input type="number" className="border-none bg-transparent text-[22px] font-bold
+                                  text-[--navy] w-20 outline-none font-serif" />
+  <span className="text-[18px] font-bold text-[--text-3] ml-1">₼</span>
+</div>
+
+// 2. Vaxt — select
+<select className="w-full border-[1.5px] border-[--gray-200] rounded-xl px-3 py-[9px]
+                   text-[12px] text-[--navy] bg-[--gray-50] mb-2.5
+                   focus:border-[--primary] focus:bg-white" />
+
+// 3. Qeyd — optional textarea
+<div className="bg-[--gray-50] border-[1.5px] border-[--gray-200] rounded-xl px-3 py-2 mb-3
+                focus-within:border-[--primary] focus-within:bg-white">
+  <textarea rows={2} placeholder="Materiallar mənidədir..." className="..." />
+</div>
+```
+
+**Düymələr:**
+```jsx
+// Ləğv et
+className="flex-1 py-2.5 rounded-xl border-[1.5px] border-[--gray-200]
+           bg-transparent text-[12px] font-semibold text-[--text-3]"
+
+// Göndər →
+className="flex-[2] py-2.5 rounded-xl text-white text-[12px] font-bold border-none cursor-pointer
+           bg-gradient-to-br from-[#1B4FD8] to-[#2563EB]
+           shadow-[0_4px_12px_rgba(27,79,216,0.25)]
+           hover:shadow-[0_6px_16px_rgba(27,79,216,0.35)] hover:-translate-y-px"
+```
+
+**Overlay klikləyib bağlamaq:** `onClick` overlay-ə, modal-a yox
+
+**Submit sonrası:**
+1. `offers` cədvəlinə `INSERT` (status: `pending`)
+2. `notifications` cədvəlinə `INSERT` — müştəriyə bildiriş
+3. Modal bağlanır
+4. Kart siyahıdan silinir
+5. Toast: `"✓ Təklifiniz göndərildi! Müştəri bildiriş aldı."` — `bg-gradient-to-br from-[#D1FAE5] to-[#A7F3D0]`, 3 saniyə
+
+**Offer limiti:** Bir sifarişə maksimum 5 `pending` təklif. 5 dolubsa "Təklif ver" disabled + `"Bu sifariş doludur"` tooltip.
+
+### 5.5 Tab 2 — Aktiv işlərim
+
+**Sıralama:** `exact_datetime ASC` — ən yaxın vaxtlı iş yuxarıda
+
+**Accordion iş kartı:**
+```jsx
+// Green border — cari aktiv iş
+className="bg-white rounded-2xl border-[1.5px] border-[#A7F3D0] mx-2.5 mb-2 overflow-hidden"
+
+// Yellow border — növbəti/gözləyən iş
+className="bg-white rounded-2xl border-[1.5px] border-[#FCD34D] mx-2.5 mb-2 overflow-hidden"
+```
+
+**Accordion header (bağlı vəziyyət):**
+```jsx
+className="flex items-center gap-2 px-3 py-2.5 cursor-pointer select-none"
+
+// Sıra nömrəsi badge
+// Aktiv: bg-gradient-to-br from-[#1B4FD8] to-[#2563EB] text-white
+// Gözləyir: bg-gradient-to-br from-[#F59E0B] to-[#FBBF24] text-white
+className="w-6 h-6 rounded-lg flex items-center justify-center text-[12px] font-bold"
+
+// Növbəti addım pill
+// Mavi: bg-[--primary-bg] text-[--primary]
+// Yaşıl: bg-[--green-bg] text-green-700
+// Sarı: bg-[--orange-pale] text-amber-800
+className="inline-flex bg-[--primary-bg] rounded-full px-[7px] py-[1px] text-[9px] font-bold"
+
+// Chat ikonu (accordion-dan müstəqil — stopPropagation)
+className="w-[26px] h-[26px] rounded-lg border-[0.5px] border-[--gray-200]
+           flex items-center justify-center cursor-pointer"
+```
+
+**Accordion body (açıq vəziyyət):**
+- `max-height: 0 → 400px`, `transition: max-height 0.3s ease`
+- Chevron: `transition: transform 0.2s`, açıqda `rotate(180deg)`
+
+**Detail row (3 kart):**
+```jsx
+className="flex gap-1.5 mt-2.5"
+// Hər kart: bg-[--gray-50] rounded-lg px-2 py-1.5
+// Label: text-[9px] text-[--text-3]
+// Value: text-[11px] font-bold text-[--navy]
+```
+
+**Step progress (5 addım):**
+`Qəbul → Ödəniş → Yolda → Gəldi → Bitdi`
+```jsx
+// Tamamlanan: text-[10px] font-bold text-[--green]
+// Cari:       text-[10px] font-bold text-[--primary]
+// Gələcək:    text-[9px] text-[--text-3]
+// Xətt — tamamlanmış: bg-[--green], yox: bg-[--gray-200]
+```
+
+**Status → Düymə mapping:**
+| DB Status | Düymə | Rəng |
+|---|---|---|
+| `accepted` | "Ödəniş gözlənilir" | `bg-[--gray-200]`, disabled |
+| `paid` | "Yola düş →" | mavi gradient |
+| `en_route` | "İş bitdi ✓" | yaşıl gradient |
+| `completed` | — kart Keçmiş taba keçir | — |
+
+### 5.6 Tab 3 — Keçmiş
+
+**Tarixçə elementi:**
+```jsx
+className="bg-white rounded-xl mx-2.5 mb-1.5 px-3 py-2.5 flex items-center justify-between"
+// Sol: kateqoriya (12px bold navy) + tarix (10px text-3)
+// Sağ: qiymət (13px bold navy font-serif) + ulduzlar (10px amber)
+```
+
+**Qazanc kartı (aşağıda):**
+```jsx
+className="bg-gradient-to-br from-[#1B4FD8] to-[#2563EB] rounded-2xl mx-2.5 mb-2.5 p-[14px]
+           flex justify-between items-center"
+// Sol: "Bu ay qazandım" (10px white/60) + məbləğ (22px bold white font-serif)
+// Sağ: "Orta reytinq" (10px white/60) + ulduz dəyəri (18px bold amber-300)
+```
+
+### 5.7 Offer Status Flow
+
+```
+pending   → göndərildi, müştəri baxır        (worker görür: "Göndərildi")
+accepted  → müştəri seçdi ✅                  (worker bildiriş alır)
+rejected  → müştəri başqasını seçdi ❌        (avtomatik, worker bildiriş alır)
+expired   → 48 saat keçdi ⏰                  (cron job, növbəti slot açılır)
+```
+
+**Offer limit mexanikası:**
+- 1 sifarişə max 5 `pending` təklif
+- 6-cı sıradakı usta yalnız birinci `expired` olanda görünür
+- Müştəri seçim edəndə: 1 `accepted`, qalanlar avtomatik `rejected`
+- Rədd edilən ustaya bildiriş: *"Bağışlayın, müştəri başqa ustanı seçdi."*
+
+### 5.8 Sifariş Kartı Sıralama (Yeni işlər tab)
+
+**Default sıra (server-dən):** `created_at DESC` — ən yeni yuxarıda
+
+**"Keç" sonrası sıra (client-side only):**
+- Keçilmiş kartlar siyahının sonuna atılır
+- Server sırası yalnız səhifə yenidən yüklənəndə bərpa olur
+
+---
+
+## 6. Footer (`components/Footer.tsx`)
+
+**Background:** `#0A1628` + `border-t border-white/8`
+
+**Layout:** `grid-cols-1 md:grid-cols-5 gap-12`
+
+**Brand column (col-span-2):**
+- Logo: Playfair Display, white + blue dot
+- Description: `text-[14px] text-white/45`, max-w-[280px]
+- Social links: `w-9 h-9 rounded-full bg-white/8 border border-white/10`, hover: `bg-[--primary]`
+- App badges (App Store + Google Play): `bg-white/8 border border-white/10 rounded-xl`
+
+**Link columns (3):**
+- Xidmətlər, Şirkət, Dəstək
+- Title: `text-[12px] font-bold text-white/90 uppercase tracking-widest`
+- Links: `text-[14px] text-white/45 hover:text-white`
+
+**Bottom row:**
+- Copyright: `text-[13px] text-white/30`
+- System status: green `animate-pulse` dot + "Bütün sistemlər işləyir"
+
+---
+
+## 7. Reusable Components
+
+### Buttons
 
 ```jsx
 // Primary (CTA)
@@ -419,14 +677,9 @@ className="bg-[var(--primary)] text-white font-semibold rounded-full px-5 py-2.5
 className="border-[1.5px] border-[var(--gray-200)] bg-transparent text-[var(--navy)]
            font-medium rounded-full px-5 py-2.5 text-sm
            hover:border-[var(--primary)] hover:text-[var(--primary)] transition-all"
-
-// Outline Blue
-className="border-[1.5px] border-[var(--primary)] bg-transparent text-[var(--primary)]
-           font-semibold rounded-full px-4 py-2 text-[13px]
-           hover:bg-[var(--primary-bg)]"
 ```
 
-### Badge-lər
+### Badges
 
 ```jsx
 // Verified
@@ -437,16 +690,6 @@ className="border-[1.5px] border-[var(--primary)] bg-transparent text-[var(--pri
 // Popular
 <span className="bg-orange-50 text-orange-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
   🔥 Populyar
-</span>
-
-// New
-<span className="bg-green-50 text-green-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-  🆕 Yeni
-</span>
-
-// Category tag
-<span className="bg-[var(--primary-bg)] text-[var(--primary)] text-[11px] font-medium px-2.5 py-1 rounded-full">
-  Boru təmiri
 </span>
 ```
 
@@ -461,7 +704,6 @@ className="border-[1.5px] border-[var(--primary)] bg-transparent text-[var(--pri
     <h2 className="font-serif text-[30px] font-bold text-[var(--navy)]">
       {title}
     </h2>
-    <p className="text-sm text-[var(--text-3)] mt-1">{subtitle}</p>
   </div>
   <a href="#" className="text-sm font-semibold text-[var(--primary)] flex items-center gap-1 hover:gap-2 transition-all">
     Hamısını gör →
@@ -471,64 +713,141 @@ className="border-[1.5px] border-[var(--primary)] bg-transparent text-[var(--pri
 
 ---
 
-## 6. Responsiv Qırılma Nöqtələri
+## 8. Responsive Breakpoints
 
-| Ekran | Breakpoint | Dəyişikliklər |
+### Breakpoint Table
+
+| Screen | Breakpoint | Changes |
 |---|---|---|
-| Desktop | `≥ 1280px` | 6-sütun kateqoriya grid, 3-sütun pro kartlar, `px-16` |
-| Tablet | `768–1279px` | 3-sütun kateqoriya, 2-sütun pro kartlar |
-| Mobile | `< 768px` | 2-sütun kateqoriya, tam genişlik axtarış, böyük düymələr |
+| Desktop | `≥ 1280px` | 6-col category grid, 3-col worker cards, `px-16` |
+| Tablet | `768–1279px` | 3-col category, 2-col worker cards, `px-8` |
+| Mobile | `< 640px` | 2-col category, full-width search, `px-4`, hamburger nav |
 
-**Mobile-first prioritetlər:**
-- Minimum tap target: `44x44px` (active:scale-95 feedback)
-- Font minimum: `14px`
-- Sifariş forması: `max-w-lg mx-auto` — mobil app görünüşü
-- Sticky header + sticky CTA
+### Mobile-First Padding System
+
+All sections use this padding pattern — never hardcode `px-16` alone:
+```jsx
+className="px-4 md:px-8 lg:px-16"
+```
+
+### Navbar — Mobile Behaviour
+
+**Mobile (< 768px):**
+- Logo stays visible (left)
+- Hamburger button (right): `w-9 h-9`, 3 lines → X icon on open
+- Nav links (Xidmətlər, Ustalar, Necə İşləyir) hidden — shown in mobile drawer
+- Action buttons collapse: only "Sifariş ver" remains visible
+- Logged-in: Bell icon + Avatar visible; "Sifarişlərim" moves into drawer
+- Mobile drawer: slides down from navbar, `bg-white`, full-width, `py-4 px-5`
+- Drawer contains: nav links + Sifarişlərim + Giriş/Çıxış
+
+```jsx
+// Hamburger button
+className="md:hidden w-9 h-9 rounded-full bg-[var(--gray-100)]
+           flex items-center justify-center text-[var(--navy)]"
+
+// Mobile drawer
+className="md:hidden absolute top-full left-0 right-0 bg-white
+           border-b border-[var(--border)] shadow-md px-5 py-4 z-40"
+```
+
+**Tablet (768px+):**
+- Full navbar visible, `px-8`
+
+**Desktop (1280px+):**
+- Full navbar, `px-16`
+
+### Hero Section — Mobile
+
+```jsx
+// Section padding
+className="px-4 md:px-8 lg:px-16 py-12 md:py-20 md:py-28"
+
+// Heading — scales up
+className="text-[28px] sm:text-[36px] md:text-[44px] lg:text-[52px]"
+
+// Search bar — stacks on mobile
+// Mobile: city select full-width top, input + button below
+// Tablet+: single row layout
+
+// Stats row — 2×2 on mobile, 4-col on tablet+
+className="grid grid-cols-2 sm:grid-cols-4"
+```
+
+### Touch Targets
+
+All interactive elements (buttons, links, cards) must be minimum **44×44px** on mobile.
+- Nav buttons: `py-2 px-4` minimum
+- Icon buttons: `w-9 h-9` minimum (36px — acceptable), `w-11 h-11` preferred (44px)
+- Form inputs: `py-3` minimum height
+
+### Safe Area (iPhone notch / home indicator)
+
+Any `fixed` or `sticky` bottom element MUST include:
+```jsx
+className="pb-[calc(1rem+env(safe-area-inset-bottom))]"
+```
+This prevents the iPhone home indicator from overlapping CTA buttons.
 
 ---
 
-## 7. Animasiya Qaydaları
+## 9. Animation Rules
 
 ```css
-/* Hover kart */
+/* Card hover */
 transition: all 250ms ease;
-hover: translateY(-4px) + box-shadow artır
+hover: translateY(-4px) + box-shadow increase
 
 /* Progress bar */
 transition: all 500ms;
 
-/* Kateqoriya seçimi */
+/* Category selection */
 transition: all 200ms;
-active:scale-95  ← tap feedback
+active:scale-95 ← tap feedback
 
 /* Backdrop blur (header/CTA) */
 backdrop-filter: blur(12px);
 background: rgba(255,255,255,0.9);
 
-/* Marker flyTo (xəritə) */
-duration: 1.2s  ← Leaflet flyTo animasiyası
+/* Pulse ring (dashboard searching state) */
+animation: pulse-out 2s ease-out infinite
+@keyframes pulse-out { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
 
-/* Sistem statusu */
-animate-pulse  ← yaşıl nöqtə
+/* Bouncing dots (dashboard searching state) */
+animation: bounce-dot 1.2s ease-in-out infinite (staggered 0.2s)
+
+/* Progress bar sweep (dashboard searching state) */
+animation: progress-pulse 2s ease-in-out infinite
+
+/* Map walking worker */
+animation: walk 1s ease-in-out infinite alternate
+
+/* System status */
+animate-pulse ← green dot
+
+/* Marker flyTo (map) */
+duration: 1.2s ← Leaflet flyTo
 ```
 
 ---
 
-## 8. Hələ Dizayn Edilməmiş Səhifələr
+## 10. Pages Not Yet Designed
 
-Aşağıdakı səhifələrin dizaynı hazırlanmadıqca bu fayla əlavə ediləcək.
-O vaxta qədər yuxarıdakı Design Tokens əsas götürülür.
+The following pages will be added here as they are designed and built.
+Until then, the Design Tokens above are the reference.
 
-- [ ] Worker Dashboard
-- [ ] Customer Dashboard
-- [ ] Worker Profile səhifəsi
+- [x] Worker Dashboard ← Section 5
+- [ ] Worker Profile page
 - [ ] Worker Registration
-- [ ] Job Request Detail (`/request/[id]`)
+- [ ] Job Request Detail (`/request/[id]`) — offer comparison
 - [ ] Offer Detail & Comparison
 - [ ] In-app Chat (ChatWindow)
 - [ ] Admin Panel
 - [ ] Categories listing page
 - [ ] Worker catalog + search + filters
-- [ ] Real-time worker tracking map
+- [ ] Real-time worker tracking map (full page)
 - [ ] Reviews & Ratings
 - [ ] Notifications panel
+- [ ] Customer Profile page (`/profile`)
+- [ ] Settings page (`/settings`)
+- [ ] History page (`/dashboard/history`)

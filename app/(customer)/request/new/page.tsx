@@ -623,6 +623,7 @@ export default function NewRequestPage() {
         {/* ────── ADDIM 4: Sifariş verildi ────── */}
         {step === 4 && (
           <div>
+            {/* Animasiya paneli */}
             <div
               className="relative flex flex-col items-center gap-4 py-8 px-4 rounded-2xl overflow-hidden mb-4"
               style={{ background: "linear-gradient(135deg, #0D1F3C, #162F6A)" }}
@@ -634,11 +635,13 @@ export default function NewRequestPage() {
                   backgroundSize: "24px 24px",
                 }}
               />
+              {/* Pulse ring */}
               <div className="relative z-10 flex items-center justify-center w-20 h-20">
                 <div className="absolute inset-0 rounded-full border-2 border-[rgba(147,180,255,0.3)]" style={{ animation: "pulse-out 2s ease-out infinite" }} />
                 <div className="absolute rounded-full border border-[rgba(147,180,255,0.15)]" style={{ inset: "-10px", animation: "pulse-out 2s ease-out 0.5s infinite" }} />
                 <div className="w-14 h-14 rounded-full bg-[rgba(27,79,216,0.4)] flex items-center justify-center text-3xl z-10">🔍</div>
               </div>
+              {/* Bouncing dots */}
               <div className="flex gap-2 z-10">
                 {[0, 1, 2].map(i => (
                   <div key={i} className="w-2 h-2 rounded-full bg-[#93B4FF]" style={{ animation: `bounce-dot 1.2s ease-in-out ${i * 0.2}s infinite` }} />
@@ -649,6 +652,7 @@ export default function NewRequestPage() {
               </p>
             </div>
 
+            {/* Progress bar */}
             <div className="h-1.5 bg-[var(--gray-100)] rounded-full overflow-hidden mb-3">
               <div className="h-full rounded-full" style={{ background: "linear-gradient(90deg, #1B4FD8, #60A5FA)", animation: "progress-pulse 2s ease-in-out infinite" }} />
             </div>
@@ -659,6 +663,7 @@ export default function NewRequestPage() {
               <span className="font-semibold text-[#25D366]">WhatsApp bildirişi</span> alacaqsınız
             </p>
 
+            {/* Sifariş məlumatları */}
             <div className="bg-white border border-[var(--border)] rounded-2xl px-4 py-3.5 mb-4">
               <p className="text-[11px] font-bold text-[var(--gray-400)] uppercase tracking-wider mb-2">Sifariş məlumatları</p>
               <div className="space-y-1.5">
@@ -683,6 +688,7 @@ export default function NewRequestPage() {
               </div>
             </div>
 
+            {/* Sifarişlərimə get */}
             <a
               href="/dashboard"
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-[var(--primary)] text-white text-[13px] font-bold hover:bg-[var(--primary-light)] transition-colors"

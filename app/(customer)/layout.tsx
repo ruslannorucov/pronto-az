@@ -7,7 +7,7 @@ export default function CustomerLayout({
 }) {
   return (
     <div className="min-h-screen bg-[var(--gray-50)]">
-      <Navbar />
+      <Navbar variant="app" />
       {children}
     </div>
   );
