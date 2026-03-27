@@ -271,13 +271,23 @@ export default function DashboardClient() {
       .order("created_at", { ascending: false });
 
     const ordersWithOffers = await Promise.all(
-      (activeOrders ?? []).map(async (order) => {
+      (activeOrders ?? []).map(async (order: any) => {
         const { count } = await supabase
           .from("offers")
           .select("*", { count: "exact", head: true })
           .eq("job_id", order.id)
           .eq("status", "pending");
-        return { ...order, offerCount: count ?? 0 };
+          
+        // Burada Supabase-dən gələn massivi tək obyektə çeviririk
+        const categoryData = Array.isArray(order.categories) 
+          ? order.categories[0] 
+          : order.categories;
+
+        return { 
+          ...order, 
+          categories: categoryData || null,
+          offerCount: count ?? 0 
+        } as Order;
       })
     );
 
