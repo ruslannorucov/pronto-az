@@ -1,0 +1,16 @@
+
+> pronto-az@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.0.1.219:3000
+- Environments: .env.local
+✓ Ready in 889ms
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+
+○ Compiling / ...
+URL: https://qmrnbypxtoyxjkssazfn.supabase.co
+KEY exists: true
+ GET / 200 in 10.4s (next.js: 8.3s, proxy.ts: 812ms, application-code: 1295ms)
+[?25h

@@ -39,3 +39,19 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+# Security & Env variables (Strictly protected)
+.env
+.env.local
+.env*.local
+.env.development
+.env.production
+.env.test
+
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/.env.local
+.env*.local
