@@ -253,7 +253,8 @@ export default function DashboardClient() {
       .eq("id", user.id)
       .single();
 
-    if (profile?.role === "worker") { router.push("/worker/dashboard"); return; }
+    // Variant B: worker da /dashboard-a gire biler
+    // role yoxlaması silinib — worker redirect edilmir
     if (profile?.role === "admin") { router.push("/admin"); return; }
 
     setProfile(profile);
@@ -277,16 +278,15 @@ export default function DashboardClient() {
           .select("*", { count: "exact", head: true })
           .eq("job_id", order.id)
           .eq("status", "pending");
-          
-        // Burada Supabase-dən gələn massivi tək obyektə çeviririk
-        const categoryData = Array.isArray(order.categories) 
-          ? order.categories[0] 
+
+        const categoryData = Array.isArray(order.categories)
+          ? order.categories[0]
           : order.categories;
 
-        return { 
-          ...order, 
+        return {
+          ...order,
           categories: categoryData || null,
-          offerCount: count ?? 0 
+          offerCount: count ?? 0,
         } as Order;
       })
     );
@@ -389,6 +389,22 @@ export default function DashboardClient() {
             <button className="bg-[#F59E0B] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shrink-0">
               Emaili yoxla
             </button>
+          </div>
+        )}
+
+        {/* Worker üçün İş paneli keçidi */}
+        {profile?.role === "worker" && (
+          <div className="bg-[var(--primary-bg)] border border-[var(--primary-mid)] rounded-xl px-4 py-3 flex items-center gap-3 mb-5">
+            <span className="text-lg">🔧</span>
+            <p className="text-[13px] text-[var(--navy)] flex-1">
+              Usta panelinizə keçmək istəyirsiniz?
+            </p>
+            <a
+              href="/worker/dashboard"
+              className="bg-[var(--primary)] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shrink-0 hover:bg-[var(--primary-light)] transition-colors"
+            >
+              İş paneli →
+            </a>
           </div>
         )}
 
