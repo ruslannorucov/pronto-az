@@ -400,7 +400,7 @@ export default function DashboardClient() {
               Usta panelinizə keçmək istəyirsiniz?
             </p>
             <a
-              href="/worker/dashboard"
+              href="/worker/panel"
               className="bg-[var(--primary)] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shrink-0 hover:bg-[var(--primary-light)] transition-colors"
             >
               İş paneli →

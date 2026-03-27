@@ -2,16 +2,14 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, Suspense } from "react"; // Suspense əlavə edildi
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 
-// 1. Formanı ayrı bir komponentə çıxarırıq
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isWorker = searchParams.get("role") === "worker";
 
   const [step, setStep] = useState<"form" | "verify">("form");
   const [fullName, setFullName] = useState("");
@@ -28,7 +26,6 @@ function RegisterForm() {
 
     try {
       const supabase = createClient();
-      const role = isWorker ? "worker" : "customer";
 
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -37,7 +34,7 @@ function RegisterForm() {
           data: {
             full_name: fullName,
             phone,
-            role,
+            role: "customer",
           },
         },
       });
@@ -66,7 +63,6 @@ function RegisterForm() {
       {/* Card */}
       <div className="bg-white rounded-3xl p-8 shadow-[0_24px_64px_rgba(0,0,0,0.3)]">
         {step === "verify" ? (
-          // ── Email təsdiq ekranı ──
           <div className="text-center py-4">
             <div className="w-16 h-16 bg-[var(--primary-bg)] rounded-2xl flex items-center justify-center mx-auto mb-5">
               <span className="text-3xl">📧</span>
@@ -87,29 +83,19 @@ function RegisterForm() {
             </Link>
           </div>
         ) : (
-          // ── Qeydiyyat forması ──
           <>
-            <div
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider mb-5 ${
-                isWorker
-                  ? "bg-[var(--primary-bg)] text-[var(--primary)]"
-                  : "bg-[var(--green-bg)] text-[var(--green)]"
-              }`}
-            >
-              {isWorker ? "⚒️ Usta qeydiyyatı" : "👤 Müştəri qeydiyyatı"}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider mb-5 bg-[var(--green-bg)] text-[var(--green)]">
+              👤 Müştəri qeydiyyatı
             </div>
 
             <h1 className="font-serif text-[26px] font-bold text-[var(--navy)] mb-1">
-              {isWorker ? "Usta kimi qoşul" : "Hesab yaradın"}
+              Hesab yaradın
             </h1>
             <p className="text-[14px] text-[var(--gray-400)] mb-7">
-              {isWorker
-                ? "Sifarişlər alın, gəlirinizi artırın"
-                : "Ən yaxşı ustaları tapın"}
+              Ən yaxşı ustaları tapın
             </p>
 
             <form onSubmit={handleRegister} className="space-y-4">
-              {/* Ad Soyad */}
               <div>
                 <label className="block text-[11px] font-bold text-[var(--gray-600)] uppercase tracking-wider mb-1.5">
                   Ad Soyad
@@ -124,7 +110,6 @@ function RegisterForm() {
                 />
               </div>
 
-              {/* Telefon */}
               <div>
                 <label className="block text-[11px] font-bold text-[var(--gray-600)] uppercase tracking-wider mb-1.5">
                   Telefon
@@ -144,7 +129,6 @@ function RegisterForm() {
                 </div>
               </div>
 
-              {/* Email */}
               <div>
                 <label className="block text-[11px] font-bold text-[var(--gray-600)] uppercase tracking-wider mb-1.5">
                   Email
@@ -159,7 +143,6 @@ function RegisterForm() {
                 />
               </div>
 
-              {/* Şifrə */}
               <div>
                 <label className="block text-[11px] font-bold text-[var(--gray-600)] uppercase tracking-wider mb-1.5">
                   Şifrə
@@ -191,7 +174,7 @@ function RegisterForm() {
                     : "bg-[var(--primary)] text-white shadow-[0_4px_16px_rgba(27,79,216,0.3)] hover:bg-[var(--primary-light)] active:scale-[0.99]"
                 }`}
               >
-                {loading ? "Qeydiyyat edilir..." : isWorker ? "Usta kimi qeydiyyat" : "Hesab yarat"}
+                {loading ? "Qeydiyyat edilir..." : "Hesab yarat"}
               </button>
             </form>
 
@@ -213,24 +196,21 @@ function RegisterForm() {
         )}
       </div>
 
+      {/* Usta qeydiyyatı — aşağıda, tam görünür düymə kimi */}
       {step === "form" && (
-        <div className="text-center mt-5">
-          {isWorker ? (
-            <Link href="/register" className="text-[13px] text-white/50 hover:text-white transition-colors">
-              Müştəri kimi qeydiyyat →
-            </Link>
-          ) : (
-            <Link href="/register?role=worker" className="text-[13px] text-white/50 hover:text-white transition-colors">
-              Usta kimi qeydiyyat →
-            </Link>
-          )}
-        </div>
+        <Link
+          href="/worker/register"
+          className="flex items-center justify-center gap-2 mt-4 w-full py-3.5 rounded-2xl border-[1.5px] border-white/25 bg-white/10 text-white text-[14px] font-semibold hover:bg-white/18 hover:border-white/40 transition-all"
+        >
+          <span>🔧</span>
+          Usta kimi qeydiyyatdan keç
+          <span className="text-white/60 text-[12px]">→</span>
+        </Link>
       )}
     </>
   );
 }
 
-// 2. Əsas Səhifə Komponenti (Bunu Next.js çağırır)
 export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0D1F3C] via-[#162F6A] to-[#1E1B6E] flex items-center justify-center px-5 py-12">
@@ -253,7 +233,6 @@ export default function RegisterPage() {
           Pronto<span className="text-[var(--primary)]">.</span>az
         </Link>
 
-        {/* VACİB: Suspense build xətasının qarşısını alır */}
         <Suspense fallback={<div className="bg-white p-8 rounded-3xl text-center">Yüklənir...</div>}>
           <RegisterForm />
         </Suspense>

@@ -139,7 +139,7 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
 
   // Worker üçün verified statusuna görə href və label
   const workerDashboardHref =
-    workerVerified === true ? "/worker/dashboard" : "/worker/pending";
+    workerVerified === true ? "/worker/panel" : "/worker/pending";
 
   const dashboardHref =
     profile?.role === "worker" ? workerDashboardHref :
