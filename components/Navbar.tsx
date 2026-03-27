@@ -210,22 +210,29 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
                         Sifariş ver
                       </button>
 
-                      {/* Sifarişlərim / İş paneli — yalnız desktop */}
-                      <Link href={dashboardHref}
+                      {/* Sifarişlərim — hər istifadəçi üçün (Variant B: worker da görür) */}
+                      <Link href="/dashboard"
                         className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[var(--primary)] text-white text-sm font-semibold hover:bg-[var(--primary-light)] transition-all">
-                        {dashboardLabel}
-                        {/* Worker pending badge */}
-                        {profile?.role === "worker" && workerVerified === false && (
-                          <span style={{
-                            fontSize: 9, fontWeight: 700,
-                            background: "#FEF3C7", color: "#92400E",
-                            padding: "1px 6px", borderRadius: 999,
-                            marginLeft: 2,
-                          }}>
-                            Gözlənilir
-                          </span>
-                        )}
+                        Sifarişlərim
                       </Link>
+
+                      {/* İş paneli — yalnız worker üçün */}
+                      {profile?.role === "worker" && (
+                        <Link href={workerDashboardHref}
+                          className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 rounded-full border-[1.5px] border-[var(--primary)] text-[var(--primary)] text-sm font-semibold hover:bg-[var(--primary-bg)] transition-all">
+                          İş paneli
+                          {workerVerified === false && (
+                            <span style={{
+                              fontSize: 9, fontWeight: 700,
+                              background: "#FEF3C7", color: "#92400E",
+                              padding: "1px 6px", borderRadius: 999,
+                              marginLeft: 2,
+                            }}>
+                              Gözlənilir
+                            </span>
+                          )}
+                        </Link>
+                      )}
 
                       {/* Bell — yalnız desktop */}
                       <Link href="/notifications"
@@ -324,15 +331,22 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
                             </Link>
                           )}
 
-                          {/* İş paneli / Sifarişlərim — worker üçün verified badge ilə */}
+                          {/* Sifarişlərim — worker üçün də görünür (Variant B) */}
                           {!isApp && (
-                            <Link href={dashboardHref} onClick={() => setDropdownOpen(false)}
+                            <Link href="/dashboard" onClick={() => setDropdownOpen(false)}
                               className="md:hidden flex items-center gap-3 px-4 py-2.5 text-[13px] text-[var(--navy)] hover:bg-[var(--gray-50)] transition-colors">
-                              <span className="w-6 h-6 rounded-lg bg-[var(--primary-bg)] flex items-center justify-center text-xs shrink-0">
-                                {profile?.role === "worker" ? "🔧" : "📋"}
-                              </span>
-                              <span className="flex-1">{dashboardLabel}</span>
-                              {profile?.role === "worker" && workerVerified === false && (
+                              <span className="w-6 h-6 rounded-lg bg-[var(--primary-bg)] flex items-center justify-center text-xs shrink-0">📋</span>
+                              <span className="flex-1">Sifarişlərim</span>
+                            </Link>
+                          )}
+
+                          {/* İş paneli — yalnız worker üçün, verified badge ilə */}
+                          {!isApp && profile?.role === "worker" && (
+                            <Link href={workerDashboardHref} onClick={() => setDropdownOpen(false)}
+                              className="flex items-center gap-3 px-4 py-2.5 text-[13px] text-[var(--navy)] hover:bg-[var(--gray-50)] transition-colors">
+                              <span className="w-6 h-6 rounded-lg bg-[var(--primary-bg)] flex items-center justify-center text-xs shrink-0">🔧</span>
+                              <span className="flex-1">İş paneli</span>
+                              {workerVerified === false && (
                                 <span style={{
                                   fontSize: 9, fontWeight: 700,
                                   background: "#FEF3C7", color: "#92400E",
@@ -407,23 +421,30 @@ export default function Navbar({ variant = "landing" }: NavbarProps) {
               <div className="space-y-0.5">
                 {user ? (
                   <>
-                    {/* İş paneli / Sifarişlərim — highlighted */}
-                    <Link href={dashboardHref} onClick={() => setDrawerOpen(false)}
+                    {/* Sifarişlərim — hər istifadəçi üçün (Variant B) */}
+                    <Link href="/dashboard" onClick={() => setDrawerOpen(false)}
                       className="flex items-center gap-3 px-3 py-3 rounded-xl text-[14px] font-semibold text-[var(--primary)] hover:bg-[var(--primary-bg)] transition-colors">
-                      <span className="w-7 h-7 rounded-lg bg-[var(--primary-bg)] flex items-center justify-center text-sm shrink-0">
-                        {profile?.role === "worker" ? "🔧" : "📋"}
-                      </span>
-                      <span className="flex-1">{dashboardLabel}</span>
-                      {profile?.role === "worker" && workerVerified === false && (
-                        <span style={{
-                          fontSize: 9, fontWeight: 700,
-                          background: "#FEF3C7", color: "#92400E",
-                          padding: "2px 8px", borderRadius: 999,
-                        }}>
-                          Gözlənilir
-                        </span>
-                      )}
+                      <span className="w-7 h-7 rounded-lg bg-[var(--primary-bg)] flex items-center justify-center text-sm shrink-0">📋</span>
+                      <span className="flex-1">Sifarişlərim</span>
                     </Link>
+
+                    {/* İş paneli — yalnız worker üçün */}
+                    {profile?.role === "worker" && (
+                      <Link href={workerDashboardHref} onClick={() => setDrawerOpen(false)}
+                        className="flex items-center gap-3 px-3 py-3 rounded-xl text-[14px] font-semibold text-[var(--primary)] hover:bg-[var(--primary-bg)] transition-colors">
+                        <span className="w-7 h-7 rounded-lg bg-[var(--primary-bg)] flex items-center justify-center text-sm shrink-0">🔧</span>
+                        <span className="flex-1">İş paneli</span>
+                        {workerVerified === false && (
+                          <span style={{
+                            fontSize: 9, fontWeight: 700,
+                            background: "#FEF3C7", color: "#92400E",
+                            padding: "2px 8px", borderRadius: 999,
+                          }}>
+                            Gözlənilir
+                          </span>
+                        )}
+                      </Link>
+                    )}
 
                     <div className="my-1.5 border-t border-[var(--gray-100)]" />
 

@@ -67,6 +67,9 @@ export async function middleware(request: NextRequest) {
       .eq("id", user.id)
       .single();
  
+    // Variant B: worker həm /dashboard, həm /worker/dashboard-a girə bilir
+    // Login sonrası worker /worker/dashboard-a göndərilir
+    // Amma /dashboard-a giriş bloklanmır (customer layout worker-i qəbul edir)
     if (profile?.role === "worker") {
       return NextResponse.redirect(new URL("/worker/dashboard", request.url));
     } else if (profile?.role === "admin") {
@@ -76,8 +79,9 @@ export async function middleware(request: NextRequest) {
     }
   }
  
-  // Worker səhifələrinə müştəri girməsin
-  // /worker/register və /worker/pending istisnadır — hər kəs açıq girə bilər
+  // Worker səhifələrinə yalnız worker/admin girə bilər
+  // İstisnalar: /worker/register, /worker/pending — hər kəs girə bilər
+  // Variant B: /dashboard və /request/new worker üçün də açıqdır
   if (
     pathname.startsWith("/worker") &&
     !pathname.startsWith("/worker/register") &&
@@ -94,6 +98,10 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
+ 
+  // Variant B: /dashboard və /request/new-ə worker də girə bilər
+  // Customer layout worker-i bloklamır — bunu aradan qaldırırıq
+  // Yəni: customer route-larına role yoxlaması YOXdur — login olması kifayətdir
  
   // Admin səhifəsinə yalnız admin girsin
   if (pathname.startsWith("/admin") && user) {
@@ -116,3 +124,4 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
+ 
