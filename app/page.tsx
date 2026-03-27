@@ -58,9 +58,7 @@ export default async function Home() {
 
       {/* ── HERO ── */}
       <section className="relative overflow-hidden bg-gradient-to-br from-[#0D1F3C] via-[#162F6A] to-[#1E1B6E] px-16 py-20 md:py-28">
-        {/* Background effects */}
         <div className="pointer-events-none absolute inset-0">
-          {/* Grid overlay */}
           <div
             className="absolute inset-0 opacity-100"
             style={{
@@ -76,14 +74,12 @@ export default async function Home() {
         </div>
 
         <div className="relative mx-auto max-w-7xl flex flex-col items-center text-center">
-          {/* Badge */}
           <div className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-[rgba(147,180,255,0.25)] bg-[rgba(27,79,216,0.18)] px-3.5 py-1.5">
             <span className="text-xs font-semibold uppercase tracking-widest text-[#93B4FF]">
               ⚡ Bakıda №1 Ev Xidmətləri Platforması
             </span>
           </div>
 
-          {/* Heading */}
           <h1 className="font-serif mx-auto max-w-[620px] text-[44px] font-extrabold leading-[1.15] text-white md:text-[52px] mb-4">
             Evdə problem?{" "}
             <br />
@@ -93,13 +89,11 @@ export default async function Home() {
             həll edir.
           </h1>
 
-          {/* Subtitle */}
           <p className="mx-auto max-w-[480px] text-[17px] leading-relaxed text-white/65 mb-10">
             Peşəkar ustalar sizə 3 rəqabətli təklif gətirsin. Qiymət
             müqayisə edin, ən yaxşısını seçin.
           </p>
 
-          {/* Search Bar */}
           <div className="flex mx-auto max-w-[660px] w-full items-center rounded-[24px] bg-white p-1.5 shadow-[0_16px_48px_rgba(13,31,60,0.22)]">
             <div className="flex items-center gap-2 border-r-[1.5px] border-[var(--border)] px-5 py-2 shrink-0 min-w-[160px]">
               <span className="text-lg">📍</span>
@@ -122,7 +116,6 @@ export default async function Home() {
             </button>
           </div>
 
-          {/* Chips */}
           <div className="mt-5 flex flex-wrap gap-2 justify-center">
             {heroChips.map((chip) => (
               <button
@@ -134,7 +127,6 @@ export default async function Home() {
             ))}
           </div>
 
-          {/* Stats */}
           <div className="mt-12 flex flex-wrap justify-center border-t border-white/8 pt-9 w-full max-w-2xl">
             {heroStats.map((stat, i) => (
               <div
@@ -178,8 +170,7 @@ export default async function Home() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {categories.map((cat, index) => {
                 const workerCount =
-                  (cat.worker_profiles as unknown as { count: number }[])?.[0]
-                    ?.count ?? 0;
+                  (cat.worker_profiles as any)?.[0]?.count ?? 0;
                 const isFeatured = index === 0;
 
                 return isFeatured ? (
@@ -229,7 +220,6 @@ export default async function Home() {
         id="how-it-works"
         className="relative overflow-hidden bg-gradient-to-br from-[#0D1F3C] to-[#162F6A] px-16 py-20"
       >
-        {/* Grid overlay */}
         <div
           className="pointer-events-none absolute inset-0"
           style={{
@@ -337,15 +327,19 @@ export default async function Home() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {workers.map((worker, index) => {
-                const profile = worker.profiles as {
+                // XƏTA BURADA İDİ: Profiles massivdirsə ilkini götürürük
+                const profile = (Array.isArray(worker.profiles) ? worker.profiles[0] : worker.profiles) as {
                   id: string;
                   full_name: string;
                   avatar_url: string | null;
                 } | null;
-                const category = worker.categories as {
+
+                // Categories massivdirsə ilkini götürürük
+                const category = (Array.isArray(worker.categories) ? worker.categories[0] : worker.categories) as {
                   name_az: string;
                   icon: string;
                 } | null;
+
                 const gradient = bannerGradients[index % bannerGradients.length];
 
                 return (
@@ -353,7 +347,6 @@ export default async function Home() {
                     key={worker.id}
                     className="bg-white rounded-2xl border-[1.5px] border-[var(--border)] overflow-hidden hover:shadow-[0_8px_32px_rgba(13,31,60,0.12)] hover:-translate-y-1 transition-all duration-250 cursor-pointer"
                   >
-                    {/* Banner */}
                     <div className={`relative h-[80px] bg-gradient-to-br ${gradient}`}>
                       {worker.verified && (
                         <span className="absolute top-2 right-2 bg-[var(--green)] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
@@ -373,7 +366,6 @@ export default async function Home() {
                       </div>
                     </div>
 
-                    {/* Body */}
                     <div className="pt-10 px-5 pb-5">
                       <h3 className="font-serif text-[16px] font-semibold text-[var(--navy)] mb-0.5">
                         {profile?.full_name ?? "Usta"}

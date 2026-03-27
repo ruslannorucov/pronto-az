@@ -65,7 +65,7 @@ function ProgressBar({ step }: { step: number }) {
           className="h-1.5 flex-1 rounded-full transition-all duration-300"
           style={{
             background:
-              i <= step
+              i <= (typeof step === 'number' ? step : 3)
                 ? "var(--primary, #1B4FD8)"
                 : "var(--gray-200, #E4EAFB)",
           }}
@@ -155,9 +155,6 @@ export default function WorkerRegisterClient({ categories }: Props) {
   };
 
   // ── Submit ─────────────────────────────────────────────────────────────────
-  // Uses RPC (SECURITY DEFINER) to bypass RLS —
-  // because after signUp with email confirmation, auth.uid() is null
-  // so direct INSERT into profiles/worker_profiles would fail RLS.
 
   const handleSubmit = async () => {
     const err = validate();
@@ -168,7 +165,7 @@ export default function WorkerRegisterClient({ categories }: Props) {
     try {
       const supabase = createClient();
 
-      // 1. Create auth user
+      // 1. Auth istifadəçisini yaradırıq
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -178,45 +175,57 @@ export default function WorkerRegisterClient({ categories }: Props) {
       });
 
       if (authError) {
-        setError(
-          authError.message.includes("already registered")
-            ? "Bu email artıq qeydiyyatdan keçib. Giriş edin."
-            : `Xəta: ${authError.message}`
-        );
+        setError(authError.message.includes("already registered") 
+          ? "Bu email artıq qeydiyyatdan keçib." 
+          : authError.message);
         return;
       }
 
-      if (!authData.user) {
-        setError("İstifadəçi yaradılmadı. Yenidən cəhd edin.");
+      const user = authData.user;
+      if (!user) throw new Error("İstifadəçi yaradıla bilmədi.");
+
+      const cleanPhone = phone.trim().startsWith("+994") ? phone.trim() : `+994${phone.trim()}`;
+
+      // 2. ÖNCƏ: Profiles cədvəlini yaradırıq (Foreign Key xətasının qarşısını almaq üçün)
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          id: user.id,
+          full_name: fullName.trim(),
+          phone: cleanPhone,
+          role: "worker",
+          is_verified: false
+        });
+
+      if (profileError) {
+        setError(`Profil xətası: ${profileError.message}`);
         return;
       }
 
-      const userId = authData.user.id;
-      const cleanPhone = phone.trim().startsWith("+994")
-        ? phone.trim()
-        : `+994${phone.trim()}`;
+      // 3. SONRA: Worker Profiles cədvəlinə detalları yazırıq
+      const { error: workerError } = await supabase
+        .from("worker_profiles")
+        .insert({
+          user_id: user.id,
+          category_id: categoryIds[0],
+          bio: bio.trim() || null,
+          experience_years: experienceToYears(experience),
+          price_min: Number(priceMin),
+          price_max: Number(priceMax),
+          available_days: availableDays,
+          verified: false,
+          is_active: false
+          // Qeyd: Əgər bazada 'available_districts' sütunu varsa bura əlavə edə bilərsən
+        });
 
-      // 2. Call RPC — SECURITY DEFINER bypasses RLS
-      const { error: rpcError } = await supabase.rpc("create_worker_profile", {
-        p_user_id: userId,
-        p_full_name: fullName.trim(),
-        p_phone: cleanPhone,
-        p_category_id: categoryIds[0],
-        p_category_ids: categoryIds,
-        p_bio: bio.trim() || null,
-        p_experience_years: experienceToYears(experience),
-        p_price_min: Number(priceMin),
-        p_price_max: Number(priceMax),
-        p_available_days: availableDays,
-        p_available_districts: districts,
-      });
-
-      if (rpcError) {
-        setError(`Xəta: ${rpcError.message}`);
+      if (workerError) {
+        setError(`Usta məlumatı xətası: ${workerError.message}`);
         return;
       }
 
       setStep("success");
+    } catch (err: any) {
+      setError("Gözlənilməz xəta: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -224,10 +233,11 @@ export default function WorkerRegisterClient({ categories }: Props) {
 
   // ─────────────────────────────────────────────────────────────────────────────
 
+  const firstNamePart = fullName.split(" ")[0] || "Usta";
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0D1F3C] via-[#162F6A] to-[#1E1B6E] flex items-center justify-center px-5 py-12">
 
-      {/* Grid overlay */}
       <div
         className="pointer-events-none fixed inset-0"
         style={{
@@ -241,7 +251,6 @@ export default function WorkerRegisterClient({ categories }: Props) {
 
       <div className="relative w-full max-w-[440px]">
 
-        {/* Logo */}
         <Link
           href="/"
           className="font-serif text-2xl font-bold text-white tracking-tight flex items-center justify-center mb-8"
@@ -249,40 +258,19 @@ export default function WorkerRegisterClient({ categories }: Props) {
           Pronto<span className="text-[var(--primary)]">.</span>az
         </Link>
 
-        {/* Card */}
         <div className="bg-white rounded-3xl p-8 shadow-[0_24px_64px_rgba(0,0,0,0.3)]">
 
-          {/* ── SUCCESS ───────────────────────────────────────────────────── */}
           {step === "success" && (
             <div className="text-center py-4">
               <div className="w-16 h-16 bg-[var(--primary-bg)] rounded-2xl flex items-center justify-center mx-auto mb-5">
                 <span className="text-3xl">✅</span>
               </div>
               <h2 className="font-serif text-[24px] font-bold text-[var(--navy)] mb-3">
-                Müraciətiniz qəbul edildi!
+                Təbriklər, {firstNamePart}!
               </h2>
               <p className="text-[15px] text-[var(--gray-400)] leading-relaxed mb-6">
-                Admin yoxlamasından sonra hesabınız aktivləşəcək. Adətən{" "}
-                <span className="font-semibold text-[var(--navy)]">24–48 saat</span>{" "}
-                ərzində cavab veririk.
+                Müraciətiniz qəbul edildi. Admin yoxlamasından sonra (24-48 saat) hesabınız aktivləşəcək.
               </p>
-              <div className="bg-[var(--gray-50)] rounded-2xl p-5 text-left mb-8 border border-[var(--gray-200)]">
-                <p className="text-[13px] font-bold text-[var(--navy)] mb-3">
-                  📌 Növbəti addımlar:
-                </p>
-                <ul className="space-y-3">
-                  {[
-                    "Admin məlumatlarınızı yoxlayır",
-                    "Emailinizə aktivləşdirmə linki göndərilir",
-                    "Hesabınız açılır, sifarişlərə baxmağa başlayırsınız",
-                  ].map((text, i) => (
-                    <li key={i} className="text-[14px] text-[var(--gray-600)] flex items-start gap-3">
-                      <span className="text-[var(--primary)] shrink-0 font-bold">{i + 1}.</span>
-                      {text}
-                    </li>
-                  ))}
-                </ul>
-              </div>
               <Link
                 href="/login"
                 className="flex items-center justify-center w-full py-4 rounded-2xl bg-[var(--primary)] text-white text-[16px] font-bold hover:bg-[var(--primary-light)] transition-colors"
@@ -292,10 +280,8 @@ export default function WorkerRegisterClient({ categories }: Props) {
             </div>
           )}
 
-          {/* ── FORM STEPS ────────────────────────────────────────────────── */}
           {step !== "success" && (
             <>
-              {/* Badge */}
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-[12px] font-bold uppercase tracking-wider mb-6 bg-[var(--primary-bg)] text-[var(--primary)]">
                 ⚒️ Usta qeydiyyatı · {step}/3
               </div>
@@ -305,25 +291,18 @@ export default function WorkerRegisterClient({ categories }: Props) {
                 {step === 2 && "Peşə məlumatları"}
                 {step === 3 && "Əlçatanlıq"}
               </h1>
-              <p className="text-[15px] text-[var(--gray-400)] mb-8">
-                {step === 1 && "Pronto.az-da usta kimi qeydiyyat"}
-                {step === 2 && "Hansı sahələrdə xidmət göstərirsiniz?"}
-                {step === 3 && "Hansı ərazilərdə və günlərdə işləyirsiniz?"}
-              </p>
 
               <ProgressBar step={step as number} />
 
-              {/* ── STEP 1 ──────────────────────────────────────────────── */}
               {step === 1 && (
                 <div className="space-y-5">
-
                   <Section>
                     <label className={labelClass}>Ad Soyad</label>
                     <input
                       type="text"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Rauf Əliyev"
+                      placeholder="Məsələn: Rauf Əliyev"
                       className={inputClass}
                     />
                   </Section>
@@ -339,7 +318,7 @@ export default function WorkerRegisterClient({ categories }: Props) {
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="50 123 45 67"
-                        className="flex-1 border-[1.5px] border-[var(--gray-200)] rounded-xl px-4 py-4 text-[16px] text-[var(--navy)] bg-white outline-none focus:border-[var(--primary)] focus:shadow-[0_0_0_3px_rgba(27,79,216,0.08)] transition-all placeholder:text-[var(--gray-400)]"
+                        className="flex-1 border-[1.5px] border-[var(--gray-200)] rounded-xl px-4 py-4 text-[16px] text-[var(--navy)] bg-white outline-none focus:border-[var(--primary)] transition-all"
                       />
                     </div>
                   </Section>
@@ -350,7 +329,7 @@ export default function WorkerRegisterClient({ categories }: Props) {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="rauf@example.com"
+                      placeholder="rauf@mail.com"
                       className={inputClass}
                     />
                   </Section>
@@ -362,81 +341,53 @@ export default function WorkerRegisterClient({ categories }: Props) {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Minimum 6 simvol"
-                      minLength={6}
                       className={inputClass}
                     />
                   </Section>
-
                 </div>
               )}
 
-              {/* ── STEP 2 ──────────────────────────────────────────────── */}
               {step === 2 && (
                 <div className="space-y-5">
-
                   <Section>
                     <div className="flex items-center justify-between mb-4">
-                      <label className="text-[13px] font-bold text-[var(--gray-600)]">
-                        Kateqoriya
-                      </label>
-                      <span
-                        className="text-[12px] font-bold px-3 py-1 rounded-full"
-                        style={{
-                          background: categoryIds.length >= 4 ? "#FEF3C7" : "var(--primary-bg)",
-                          color: categoryIds.length >= 4 ? "#92400E" : "var(--primary)",
-                        }}
-                      >
-                        {categoryIds.length}/4 seçildi
+                      <label className={labelClass}>Kateqoriya seçin</label>
+                      <span className="text-[11px] font-bold text-[var(--primary)] bg-[var(--primary-bg)] px-2 py-1 rounded-full">
+                        {categoryIds.length}/4
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-2.5">
-                      {categories.map((cat) => {
-                        const sel = categoryIds.includes(cat.id);
-                        const maxed = !sel && categoryIds.length >= 4;
-                        return (
-                          <button
-                            key={cat.id}
-                            type="button"
-                            onClick={() => !maxed && toggleCategory(cat.id)}
-                            disabled={maxed}
-                            className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all border-[1.5px] bg-white"
-                            style={{
-                              borderColor: sel ? "var(--primary)" : "var(--gray-200)",
-                              background: sel ? "var(--primary-bg)" : "white",
-                              opacity: maxed ? 0.4 : 1,
-                              cursor: maxed ? "not-allowed" : "pointer",
-                            }}
-                          >
-                            <span className="text-[20px]">{cat.icon}</span>
-                            <span
-                              className="text-[13px] font-semibold"
-                              style={{ color: sel ? "var(--primary)" : "var(--navy)" }}
-                            >
-                              {cat.name_az}
-                            </span>
-                            {sel && (
-                              <span className="ml-auto font-bold" style={{ color: "var(--primary)" }}>✓</span>
-                            )}
-                          </button>
-                        );
-                      })}
+                      {categories.map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => toggleCategory(cat.id)}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-left border-[1.5px] transition-all ${
+                            categoryIds.includes(cat.id) 
+                            ? "border-[var(--primary)] bg-[var(--primary-bg)]" 
+                            : "border-[var(--gray-200)] bg-white"
+                          }`}
+                        >
+                          <span>{cat.icon}</span>
+                          <span className="text-[12px] font-semibold">{cat.name_az}</span>
+                        </button>
+                      ))}
                     </div>
                   </Section>
 
                   <Section>
                     <label className={labelClass}>Təcrübə</label>
-                    <div className="flex flex-wrap gap-2.5">
+                    <div className="flex flex-wrap gap-2">
                       {EXPERIENCE_OPTIONS.map((opt) => (
                         <button
                           key={opt}
                           type="button"
                           onClick={() => setExperience(opt)}
-                          className="px-4 py-2.5 rounded-full text-[14px] font-medium transition-all border-[1.5px] bg-white"
-                          style={{
-                            borderColor: experience === opt ? "var(--primary)" : "var(--gray-200)",
-                            background: experience === opt ? "var(--primary-bg)" : "white",
-                            color: experience === opt ? "var(--primary)" : "var(--navy)",
-                          }}
+                          className={`px-3 py-2 rounded-full text-[13px] border-[1.5px] transition-all ${
+                            experience === opt 
+                            ? "border-[var(--primary)] bg-[var(--primary-bg)] text-[var(--primary)]" 
+                            : "border-[var(--gray-200)] bg-white"
+                          }`}
                         >
                           {opt}
                         </button>
@@ -446,200 +397,96 @@ export default function WorkerRegisterClient({ categories }: Props) {
 
                   <Section>
                     <label className={labelClass}>Qiymət aralığı (₼)</label>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center flex-1 border-[1.5px] border-[var(--gray-200)] rounded-xl px-4 py-3.5 gap-2 bg-white focus-within:border-[var(--primary)] transition-all">
-                        <input
-                          type="number"
-                          value={priceMin}
-                          onChange={(e) => setPriceMin(e.target.value)}
-                          placeholder="30"
-                          className="w-full bg-transparent text-[18px] font-bold text-[var(--navy)] outline-none font-serif"
-                        />
-                        <span className="text-[16px] font-bold text-[var(--gray-400)]">₼</span>
-                      </div>
-                      <span className="text-[18px] font-bold text-[var(--gray-400)]">—</span>
-                      <div className="flex items-center flex-1 border-[1.5px] border-[var(--gray-200)] rounded-xl px-4 py-3.5 gap-2 bg-white focus-within:border-[var(--primary)] transition-all">
-                        <input
-                          type="number"
-                          value={priceMax}
-                          onChange={(e) => setPriceMax(e.target.value)}
-                          placeholder="200"
-                          className="w-full bg-transparent text-[18px] font-bold text-[var(--navy)] outline-none font-serif"
-                        />
-                        <span className="text-[16px] font-bold text-[var(--gray-400)]">₼</span>
-                      </div>
+                    <div className="flex gap-3">
+                      <input
+                        type="number"
+                        placeholder="Min"
+                        value={priceMin}
+                        onChange={(e) => setPriceMin(e.target.value)}
+                        className="w-1/2 border-[1.5px] border-[var(--gray-200)] rounded-xl px-4 py-3 outline-none focus:border-[var(--primary)]"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Max"
+                        value={priceMax}
+                        onChange={(e) => setPriceMax(e.target.value)}
+                        className="w-1/2 border-[1.5px] border-[var(--gray-200)] rounded-xl px-4 py-3 outline-none focus:border-[var(--primary)]"
+                      />
                     </div>
                   </Section>
-
-                  <Section>
-                    <label className={labelClass}>
-                      Özünüz haqqında{" "}
-                      <span className="font-normal text-[var(--gray-400)]">(istəyə bağlı)</span>
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={bio}
-                      onChange={(e) => setBio(e.target.value)}
-                      placeholder="Peşəkar santexnik, 8 illik təcrübəm var..."
-                      maxLength={300}
-                      className="w-full border-[1.5px] border-[var(--gray-200)] rounded-xl px-4 py-4 text-[15px] text-[var(--navy)] bg-white outline-none focus:border-[var(--primary)] focus:shadow-[0_0_0_3px_rgba(27,79,216,0.08)] transition-all placeholder:text-[var(--gray-400)] resize-none"
-                    />
-                    <p className="text-[12px] text-right mt-1.5 text-[var(--gray-400)]">
-                      {bio.length}/300
-                    </p>
-                  </Section>
-
                 </div>
               )}
 
-              {/* ── STEP 3 ──────────────────────────────────────────────── */}
               {step === 3 && (
                 <div className="space-y-5">
-
                   <Section>
-                    <div className="flex items-center justify-between mb-4">
-                      <label className="text-[13px] font-bold text-[var(--gray-600)]">
-                        İş rayonları — Bakı
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setDistricts(
-                            districts.length === BAKU_DISTRICTS.length
-                              ? []
-                              : [...BAKU_DISTRICTS]
-                          )
-                        }
-                        className="text-[13px] font-bold transition-colors"
-                        style={{ color: "var(--primary)" }}
-                      >
-                        {districts.length === BAKU_DISTRICTS.length ? "Sıfırla" : "Hamısı"}
-                      </button>
-                    </div>
+                    <label className={labelClass}>İş rayonları (Bakı)</label>
                     <div className="grid grid-cols-3 gap-2">
-                      {BAKU_DISTRICTS.map((d) => {
-                        const sel = districts.includes(d);
-                        return (
-                          <button
-                            key={d}
-                            type="button"
-                            onClick={() => toggleDistrict(d)}
-                            className="px-2 py-3 rounded-xl text-[13px] font-medium transition-all text-center border-[1.5px] bg-white"
-                            style={{
-                              borderColor: sel ? "var(--primary)" : "var(--gray-200)",
-                              background: sel ? "var(--primary-bg)" : "white",
-                              color: sel ? "var(--primary)" : "var(--navy)",
-                            }}
-                          >
-                            {sel ? "✓ " : ""}{d}
-                          </button>
-                        );
-                      })}
+                      {BAKU_DISTRICTS.map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => toggleDistrict(d)}
+                          className={`py-2 rounded-lg text-[12px] border-[1.5px] transition-all ${
+                            districts.includes(d) 
+                            ? "border-[var(--primary)] bg-[var(--primary-bg)]" 
+                            : "border-[var(--gray-200)] bg-white"
+                          }`}
+                        >
+                          {d}
+                        </button>
+                      ))}
                     </div>
-                    {districts.length > 0 && (
-                      <p className="text-[13px] mt-3" style={{ color: "var(--gray-400)" }}>
-                        {districts.length} rayon seçildi
-                      </p>
-                    )}
                   </Section>
 
                   <Section>
                     <label className={labelClass}>İş günləri</label>
-                    <div className="flex gap-2.5 flex-wrap">
-                      {AVAILABLE_DAYS.map(({ key, label }) => {
-                        const sel = availableDays.includes(key);
-                        return (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => toggleDay(key)}
-                            className="w-12 h-12 rounded-xl text-[13px] font-bold transition-all border-[1.5px]"
-                            style={{
-                              borderColor: sel ? "var(--primary)" : "var(--gray-200)",
-                              background: sel ? "var(--primary-bg)" : "white",
-                              color: sel ? "var(--primary)" : "var(--gray-600)",
-                            }}
-                          >
-                            {label}
-                          </button>
-                        );
-                      })}
+                    <div className="flex gap-2 flex-wrap">
+                      {AVAILABLE_DAYS.map((day) => (
+                        <button
+                          key={day.key}
+                          type="button"
+                          onClick={() => toggleDay(day.key)}
+                          className={`w-10 h-10 rounded-lg text-[12px] font-bold border-[1.5px] transition-all ${
+                            availableDays.includes(day.key) 
+                            ? "border-[var(--primary)] bg-[var(--primary-bg)] text-[var(--primary)]" 
+                            : "border-[var(--gray-200)] bg-white"
+                          }`}
+                        >
+                          {day.label}
+                        </button>
+                      ))}
                     </div>
                   </Section>
-
                 </div>
               )}
 
-              {/* Error */}
               {error && (
-                <div className="mt-6 bg-red-50 border border-red-100 rounded-xl px-5 py-4 flex items-start gap-3">
-                  <span className="text-[18px] shrink-0">⚠️</span>
-                  <p className="text-[14px] font-medium text-red-600">{error}</p>
+                <div className="mt-4 p-3 bg-red-50 border border-red-100 text-red-600 text-[13px] rounded-xl">
+                  ⚠️ {error}
                 </div>
               )}
 
-              {/* Buttons */}
-              <div className="flex gap-4 mt-8">
-                {(step as number) > 1 && (
+              <div className="flex gap-3 mt-8">
+                {step !== 1 && (
                   <button
-                    type="button"
                     onClick={handleBack}
-                    className="flex-1 py-4 rounded-2xl border-[1.5px] border-[var(--gray-200)] text-[16px] font-semibold text-[var(--navy)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-all"
+                    className="flex-1 py-4 rounded-2xl border-[1.5px] border-[var(--gray-200)] font-bold text-[var(--navy)]"
                   >
                     Geri
                   </button>
                 )}
                 <button
-                  type="button"
                   onClick={step === 3 ? handleSubmit : handleNext}
                   disabled={loading}
-                  className={`flex-[2] font-bold text-[16px] py-4 rounded-2xl transition-all duration-200 ${
-                    loading
-                      ? "bg-[var(--gray-200)] text-[var(--gray-400)] cursor-not-allowed"
-                      : "bg-[var(--primary)] text-white shadow-[0_4px_16px_rgba(27,79,216,0.3)] hover:bg-[var(--primary-light)] active:scale-[0.99]"
-                  }`}
+                  className="flex-[2] py-4 rounded-2xl bg-[var(--primary)] text-white font-bold shadow-lg hover:bg-[var(--primary-light)] disabled:opacity-50"
                 >
-                  {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Göndərilir...
-                    </span>
-                  ) : step === 3 ? (
-                    "Qeydiyyatı tamamla"
-                  ) : (
-                    "Növbəti →"
-                  )}
+                  {loading ? "Gözləyin..." : step === 3 ? "Tamamla" : "Növbəti →"}
                 </button>
               </div>
-
-              {/* Divider */}
-              <div className="flex items-center gap-3 my-7">
-                <div className="h-px flex-1 bg-[var(--gray-200)]" />
-                <p className="text-[12px] font-bold text-[var(--gray-400)] uppercase tracking-wider whitespace-nowrap">
-                  artıq hesabınız var?
-                </p>
-                <div className="h-px flex-1 bg-[var(--gray-200)]" />
-              </div>
-
-              <Link
-                href="/login"
-                className="flex items-center justify-center w-full py-4 rounded-2xl border-[1.5px] border-[var(--gray-200)] text-[16px] font-semibold text-[var(--navy)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-all"
-              >
-                Daxil ol
-              </Link>
             </>
           )}
         </div>
-
-        {/* Back to home */}
-        <p className="text-center mt-5">
-          <Link
-            href="/"
-            className="text-[14px] text-white/30 hover:text-white/50 transition-colors"
-          >
-            ← Ana səhifəyə qayıt
-          </Link>
-        </p>
       </div>
     </div>
   );
@@ -648,10 +495,12 @@ export default function WorkerRegisterClient({ categories }: Props) {
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 function experienceToYears(exp: string): number {
-  if (exp === "1 ildən az") return 0;
-  if (exp === "1–3 il") return 2;
-  if (exp === "3–5 il") return 4;
-  if (exp === "5–10 il") return 7;
-  if (exp === "10+ il") return 10;
-  return 0;
+  const map: Record<string, number> = {
+    "1 ildən az": 0,
+    "1–3 il": 2,
+    "3–5 il": 4,
+    "5–10 il": 7,
+    "10+ il": 12
+  };
+  return map[exp] || 0;
 }
