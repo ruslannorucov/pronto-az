@@ -169,8 +169,10 @@ export default async function Home() {
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {categories.map((cat, index) => {
-                const workerCount =
-                  (cat.worker_profiles as any)?.[0]?.count ?? 0;
+                // Kateqoriya sayı üçün massiv yoxlanışı
+                const workerCountData = Array.isArray(cat.worker_profiles) ? cat.worker_profiles[0] : cat.worker_profiles;
+                const workerCount = (workerCountData as any)?.count ?? 0;
+                
                 const isFeatured = index === 0;
 
                 return isFeatured ? (
@@ -254,7 +256,7 @@ export default async function Home() {
                 num: "02",
                 icon: "🔔",
                 title: "Ustalar görür",
-                desc: "Uyğun ustalar bildiriş alır və sifarişinizə qiymət təklifi verir",
+                desc: "Uyğun ustalar bildiriş alır ve sifarişinizə qiymət təklifi verir",
               },
               {
                 num: "03",
@@ -327,15 +329,17 @@ export default async function Home() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {workers.map((worker, index) => {
-                // XƏTA BURADA İDİ: Profiles massivdirsə ilkini götürürük
-                const profile = (Array.isArray(worker.profiles) ? worker.profiles[0] : worker.profiles) as {
+                // TYPE FIX: Profiles massivdirsə ilkini götürürük
+                const profileData = Array.isArray(worker.profiles) ? worker.profiles[0] : worker.profiles;
+                const profile = profileData as {
                   id: string;
                   full_name: string;
                   avatar_url: string | null;
                 } | null;
 
-                // Categories massivdirsə ilkini götürürük
-                const category = (Array.isArray(worker.categories) ? worker.categories[0] : worker.categories) as {
+                // TYPE FIX: Categories massivdirsə ilkini götürürük
+                const categoryData = Array.isArray(worker.categories) ? worker.categories[0] : worker.categories;
+                const category = categoryData as {
                   name_az: string;
                   icon: string;
                 } | null;
