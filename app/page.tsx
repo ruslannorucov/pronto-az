@@ -57,7 +57,7 @@ export default async function Home() {
       <Navbar />
 
       {/* ── HERO ── */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#0D1F3C] via-[#162F6A] to-[#1E1B6E] px-16 py-20 md:py-28">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#0D1F3C] via-[#162F6A] to-[#1E1B6E] px-4 md:px-8 lg:px-16 py-16 md:py-24 lg:py-28">
         <div className="pointer-events-none absolute inset-0">
           <div
             className="absolute inset-0 opacity-100"
@@ -80,7 +80,8 @@ export default async function Home() {
             </span>
           </div>
 
-          <h1 className="font-serif mx-auto max-w-[620px] text-[44px] font-extrabold leading-[1.15] text-white md:text-[52px] mb-4">
+          {/* FIX: Responsive heading — was fixed text-[44px] */}
+          <h1 className="font-serif mx-auto max-w-[620px] text-[28px] sm:text-[36px] md:text-[44px] lg:text-[52px] font-extrabold leading-[1.15] text-white mb-4">
             Evdə problem?{" "}
             <br />
             <em className="not-italic bg-gradient-to-r from-[#93B4FF] to-[#60A5FA] bg-clip-text text-transparent">
@@ -89,31 +90,39 @@ export default async function Home() {
             həll edir.
           </h1>
 
-          <p className="mx-auto max-w-[480px] text-[17px] leading-relaxed text-white/65 mb-10">
+          <p className="mx-auto max-w-[480px] text-[15px] md:text-[17px] leading-relaxed text-white/65 mb-10">
             Peşəkar ustalar sizə 3 rəqabətli təklif gətirsin. Qiymət
             müqayisə edin, ən yaxşısını seçin.
           </p>
 
-          <div className="flex mx-auto max-w-[660px] w-full items-center rounded-[24px] bg-white p-1.5 shadow-[0_16px_48px_rgba(13,31,60,0.22)]">
-            <div className="flex items-center gap-2 border-r-[1.5px] border-[var(--border)] px-5 py-2 shrink-0 min-w-[160px]">
-              <span className="text-lg">📍</span>
-              <div>
-                <select className="bg-transparent text-sm font-semibold text-[var(--navy)] outline-none cursor-pointer appearance-none w-full">
-                  <option>Bakı</option>
-                  <option>Sumqayıt</option>
-                  <option>Gəncə</option>
-                </select>
-                <p className="text-[11px] text-[var(--text-3)]">Şəhər</p>
+          {/* FIX: Search bar — mobile-da stack layout */}
+          <div className="mx-auto w-full max-w-[660px] rounded-[24px] bg-white shadow-[0_16px_48px_rgba(13,31,60,0.22)]">
+            {/* Mobile: üst-alt stack */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:p-1.5">
+              {/* Şəhər seçimi */}
+              <div className="flex items-center gap-2 px-5 py-3 sm:py-2 sm:border-r-[1.5px] sm:border-[var(--border)] sm:shrink-0 sm:min-w-[160px] border-b border-[var(--border)] sm:border-b-0">
+                <span className="text-lg">📍</span>
+                <div>
+                  <select className="bg-transparent text-sm font-semibold text-[var(--navy)] outline-none cursor-pointer appearance-none w-full">
+                    <option>Bakı</option>
+                    <option>Sumqayıt</option>
+                    <option>Gəncə</option>
+                  </select>
+                  <p className="text-[11px] text-[var(--text-3)]">Şəhər</p>
+                </div>
+              </div>
+              {/* Axtarış input + düymə */}
+              <div className="flex flex-1 items-center px-4 py-2 sm:py-1.5">
+                <input
+                  type="text"
+                  placeholder="Santexnik, elektrik, təmizlik..."
+                  className="flex-1 bg-transparent text-[15px] text-[var(--navy)] placeholder:text-[var(--text-3)] outline-none min-w-0"
+                />
+                <button className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-[var(--primary)] text-white text-xl transition-colors hover:bg-[var(--primary-light)]">
+                  🔍
+                </button>
               </div>
             </div>
-            <input
-              type="text"
-              placeholder="Santexnik, elektrik, təmizlik..."
-              className="flex-1 bg-transparent px-5 text-[15px] text-[var(--navy)] placeholder:text-[var(--text-3)] outline-none"
-            />
-            <button className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-[var(--primary)] text-white text-xl transition-colors hover:bg-[var(--primary-light)]">
-              🔍
-            </button>
           </div>
 
           <div className="mt-5 flex flex-wrap gap-2 justify-center">
@@ -127,32 +136,44 @@ export default async function Home() {
             ))}
           </div>
 
-          <div className="mt-12 flex flex-wrap justify-center border-t border-white/8 pt-9 w-full max-w-2xl">
-            {heroStats.map((stat, i) => (
-              <div
-                key={stat.label}
-                className={`flex-1 text-center px-8 ${i < heroStats.length - 1 ? "border-r border-white/8" : ""}`}
-              >
-                <p className="font-serif text-[30px] font-bold text-white leading-none mb-1.5">
-                  {stat.value}
-                </p>
-                <p className="text-[12px] font-medium text-white/45">{stat.label}</p>
-              </div>
-            ))}
+          {/* FIX: Stats row — flex→grid, px-8→adaptive */}
+          <div className="mt-12 w-full max-w-2xl border-t border-white/8 pt-9">
+            <div className="grid grid-cols-2 sm:grid-cols-4">
+              {heroStats.map((stat, i) => (
+                <div
+                  key={stat.label}
+                  className={`text-center py-2 px-4 ${
+                    i < heroStats.length - 1
+                      ? "border-r border-white/8 last:border-r-0"
+                      : ""
+                  } ${
+                    // Mobile-da 2x2 grid: alt sıradakılar üst border alır
+                    i >= 2 ? "border-t border-white/8 sm:border-t-0" : ""
+                  }`}
+                >
+                  <p className="font-serif text-[24px] sm:text-[30px] font-bold text-white leading-none mb-1.5">
+                    {stat.value}
+                  </p>
+                  <p className="text-[11px] sm:text-[12px] font-medium text-white/45">
+                    {stat.label}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       {/* ── KATEQORİYALAR ── */}
       {categories && categories.length > 0 && (
-        <section className="bg-white py-20 px-16">
+        <section className="bg-white py-12 md:py-20 px-4 md:px-8 lg:px-16">
           <div className="mx-auto max-w-7xl">
             <div className="flex items-end justify-between mb-9">
               <div>
                 <p className="text-xs font-bold text-[var(--primary)] uppercase tracking-widest mb-2">
                   XİDMƏTLƏR
                 </p>
-                <h2 className="font-serif text-[30px] font-bold text-[var(--navy)]">
+                <h2 className="font-serif text-[24px] md:text-[30px] font-bold text-[var(--navy)]">
                   Xidmət Kateqoriyaları
                 </h2>
                 <p className="text-sm text-[var(--text-3)] mt-1">
@@ -161,7 +182,7 @@ export default async function Home() {
               </div>
               <a
                 href="/categories"
-                className="text-sm font-semibold text-[var(--primary)] flex items-center gap-1 transition-all hover:gap-2"
+                className="text-sm font-semibold text-[var(--primary)] flex items-center gap-1 transition-all hover:gap-2 shrink-0 ml-4"
               >
                 Hamısını gör →
               </a>
@@ -169,25 +190,26 @@ export default async function Home() {
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {categories.map((cat, index) => {
-                // Kateqoriya sayı üçün massiv yoxlanışı
-                const workerCountData = Array.isArray(cat.worker_profiles) ? cat.worker_profiles[0] : cat.worker_profiles;
+                const workerCountData = Array.isArray(cat.worker_profiles)
+                  ? cat.worker_profiles[0]
+                  : cat.worker_profiles;
                 const workerCount = (workerCountData as any)?.count ?? 0;
-                
+
                 const isFeatured = index === 0;
 
                 return isFeatured ? (
                   <div
                     key={cat.id}
-                    className={`col-span-2 flex items-center gap-5 bg-gradient-to-br ${bannerGradients[0]} rounded-2xl p-7 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(27,79,216,0.35)]`}
+                    className={`col-span-2 flex items-center gap-5 bg-gradient-to-br ${bannerGradients[0]} rounded-2xl p-5 md:p-7 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(27,79,216,0.35)]`}
                   >
-                    <div className="w-14 h-14 rounded-xl bg-white/15 flex items-center justify-center text-[40px] shrink-0">
+                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-white/15 flex items-center justify-center text-[32px] md:text-[40px] shrink-0">
                       {cat.icon}
                     </div>
                     <div>
-                      <p className="text-white font-semibold text-[17px] mb-1">
+                      <p className="text-white font-semibold text-[15px] md:text-[17px] mb-1">
                         {cat.name_az}
                       </p>
-                      <p className="text-white/65 text-[13px]">
+                      <p className="text-white/65 text-[12px] md:text-[13px]">
                         {workerCount > 0
                           ? `${workerCount} usta hazır`
                           : "Ustalar gəlir"}
@@ -218,9 +240,10 @@ export default async function Home() {
       )}
 
       {/* ── NECƏ İŞLƏYİR ── */}
+      {/* FIX: px-16 → px-4 md:px-8 lg:px-16 */}
       <section
         id="how-it-works"
-        className="relative overflow-hidden bg-gradient-to-br from-[#0D1F3C] to-[#162F6A] px-16 py-20"
+        className="relative overflow-hidden bg-gradient-to-br from-[#0D1F3C] to-[#162F6A] px-4 md:px-8 lg:px-16 py-12 md:py-20"
       >
         <div
           className="pointer-events-none absolute inset-0"
@@ -232,11 +255,11 @@ export default async function Home() {
         />
 
         <div className="relative mx-auto max-w-7xl">
-          <div className="text-center mb-12">
+          <div className="text-center mb-10 md:mb-12">
             <p className="text-xs font-bold uppercase tracking-widest text-[#93B4FF] mb-3">
               PROSES
             </p>
-            <h2 className="font-serif text-[30px] font-bold text-white mb-2">
+            <h2 className="font-serif text-[24px] md:text-[30px] font-bold text-white mb-2">
               Necə işləyir?
             </h2>
             <p className="text-[15px] text-white/50">
@@ -273,26 +296,26 @@ export default async function Home() {
             ].map((step, i) => (
               <div
                 key={step.num}
-                className="relative bg-white/5 border border-white/8 rounded-2xl p-7 hover:bg-white/8 transition-all duration-300"
+                className="relative bg-white/5 border border-white/8 rounded-2xl p-5 md:p-7 hover:bg-white/8 transition-all duration-300"
               >
                 {i < 3 && (
                   <div className="hidden lg:block absolute top-10 -right-3 w-6 h-[1.5px] bg-white/10 z-10" />
                 )}
-                <p className="font-serif text-[52px] font-bold leading-none text-[rgba(27,79,216,0.3)] mb-4">
+                <p className="font-serif text-[44px] md:text-[52px] font-bold leading-none text-[rgba(27,79,216,0.3)] mb-4">
                   {step.num}
                 </p>
                 <span className="text-[28px] mb-3 block">{step.icon}</span>
-                <h3 className="text-[15px] font-semibold text-white mb-2">
+                <h3 className="text-[14px] md:text-[15px] font-semibold text-white mb-2">
                   {step.title}
                 </h3>
-                <p className="text-[13px] text-white/50 leading-relaxed">
+                <p className="text-[12px] md:text-[13px] text-white/50 leading-relaxed">
                   {step.desc}
                 </p>
               </div>
             ))}
           </div>
 
-          <div className="mt-12 text-center">
+          <div className="mt-10 md:mt-12 text-center">
             <a
               href="/request/new"
               className="inline-flex items-center gap-2 bg-[var(--primary)] text-white font-semibold text-sm px-7 py-3.5 rounded-full hover:bg-[var(--primary-light)] transition-colors"
@@ -305,14 +328,14 @@ export default async function Home() {
 
       {/* ── USTALAR ── */}
       {workers && workers.length > 0 && (
-        <section className="bg-[var(--gray-50)] py-20 px-16">
+        <section className="bg-[var(--gray-50)] py-12 md:py-20 px-4 md:px-8 lg:px-16">
           <div className="mx-auto max-w-7xl">
             <div className="flex items-end justify-between mb-9">
               <div>
                 <p className="text-xs font-bold text-[var(--primary)] uppercase tracking-widest mb-2">
                   USTALAR
                 </p>
-                <h2 className="font-serif text-[30px] font-bold text-[var(--navy)]">
+                <h2 className="font-serif text-[24px] md:text-[30px] font-bold text-[var(--navy)]">
                   Ən Yaxşı Ustalar
                 </h2>
                 <p className="text-sm text-[var(--text-3)] mt-1">
@@ -321,7 +344,7 @@ export default async function Home() {
               </div>
               <a
                 href="/workers"
-                className="text-sm font-semibold text-[var(--primary)] flex items-center gap-1 transition-all hover:gap-2"
+                className="text-sm font-semibold text-[var(--primary)] flex items-center gap-1 transition-all hover:gap-2 shrink-0 ml-4"
               >
                 Hamısını gör →
               </a>
@@ -329,16 +352,18 @@ export default async function Home() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {workers.map((worker, index) => {
-                // TYPE FIX: Profiles massivdirsə ilkini götürürük
-                const profileData = Array.isArray(worker.profiles) ? worker.profiles[0] : worker.profiles;
+                const profileData = Array.isArray(worker.profiles)
+                  ? worker.profiles[0]
+                  : worker.profiles;
                 const profile = profileData as {
                   id: string;
                   full_name: string;
                   avatar_url: string | null;
                 } | null;
 
-                // TYPE FIX: Categories massivdirsə ilkini götürürük
-                const categoryData = Array.isArray(worker.categories) ? worker.categories[0] : worker.categories;
+                const categoryData = Array.isArray(worker.categories)
+                  ? worker.categories[0]
+                  : worker.categories;
                 const category = categoryData as {
                   name_az: string;
                   icon: string;
@@ -359,6 +384,8 @@ export default async function Home() {
                       )}
                       <div className="absolute -bottom-[30px] left-5 w-[60px] h-[60px] rounded-full border-[3px] border-white bg-gradient-to-br from-[#60A5FA] to-[#1B4FD8] flex items-center justify-center text-2xl shadow-md overflow-hidden">
                         {profile?.avatar_url ? (
+                          // NOTE: next/image burada işlətmək üçün domains konfiqurasiyası lazımdır
+                          // Post-MVP: <Image src={} ... sizes="60px" /> ilə əvəz et
                           <img
                             src={profile.avatar_url}
                             alt={profile.full_name ?? ""}

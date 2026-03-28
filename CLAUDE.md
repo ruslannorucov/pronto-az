@@ -1,5 +1,17 @@
 # CLAUDE.md — Pronto.az
 
+## QA_AUDIT Reference — Mandatory
+⚠️ BEFORE EVERY TASK, Claude MUST read `QA_AUDIT.md` and cross-check
+the delivery against ALL sections, especially Section 6 (Pronto.az Business Logic).
+
+- Path: `QA_AUDIT.md` (project root)
+- When: Before planning, before coding, before any file change
+- How: Silently read → check each relevant item → report result
+
+Failure to consult QA_AUDIT.md before delivery is a rule violation.
+
+---
+
 ## Agent Behaviour Rules (Strict Mode)
 ⚠️ READ THIS FIRST — BEFORE DOING ANYTHING
 
@@ -595,54 +607,79 @@ Navbar has two variants: `variant="landing"` (default) and `variant="app"`.
 10. Mark "En route" → customer gets live tracking
 11. Complete job → payment released → receive rating
 
-## Responsive Design Rules (Mobile-First)
+## QA Gate — Mandatory Pre-Delivery Checklist
+⚠️ THIS RUNS BEFORE EVERY CODE DELIVERY, SUGGESTION, OR FILE CHANGE
 
-### Philosophy
-Every UI component is written mobile-first.
-Tailwind classes are written small → large, never large only.
+→ Full checklist: see `QA_AUDIT.md` (Section 6 — Pronto.az specific)
 
+Before delivering any code, UI component, or database change, Claude MUST
+silently run through this checklist and report the result.
+
+### Security
+- [ ] No credentials, keys, or secrets in code or comments
+- [ ] All Supabase queries use parameterized filters (no string interpolation)
+- [ ] RLS implications considered for any new table/query
+- [ ] No `service_role` key referenced client-side
+
+### Business Logic
+- [ ] Offer limit (max 5 per job) respected in any offer-related code
+- [ ] Address/location privacy: lat/lng not exposed before payment
+- [ ] Chat unlock only after offer acceptance
+- [ ] Worker status gate (pending/blocked/verified) not bypassed
+- [ ] Notification channels referenced distinctly (WhatsApp vs in-app)
+- [ ] Order IDs shown as #PRN-XXXX, never raw UUID
+
+### UI / Code Quality
+- [ ] TypeScript used (no plain JS)
+- [ ] try/catch on every Supabase query
+- [ ] Loading skeleton present for async operations
+- [ ] UI text in Azerbaijani, code/variables in English
+- [ ] CSS variables used (`var(--primary)`), not hardcoded hex
+  Exception: worker registration + pending pages (inline styles)
+- [ ] Mobile-first Tailwind classes (px-4 md:px-8 lg:px-16 pattern)
   CORRECT:   px-4 sm:px-6 md:px-8 lg:px-16
   WRONG:     px-16   ← desktop only, breaks mobile
 
-### Mandatory Check — Every Section / Component
-Before delivering ANY UI code, Claude MUST simulate the layout at:
+### Responsive (auto-runs with every UI delivery)
+Simulate layout at each breakpoint before delivering:
   1. 375px  — small phone (iPhone SE)
   2. 390px  — standard phone (iPhone 14/15)
   3. 768px  — tablet
   4. 1280px — desktop
 
-Check each of the following:
+Check:
   - No hard-coded desktop-only padding/margin (px-16, px-[64px], etc.)
   - No horizontal overflow at 375px
-  - All touch targets are minimum 44×44px
+  - All touch targets minimum 44×44px
   - Sticky/fixed bottom elements include iPhone safe area:
       pb-[calc(1rem+env(safe-area-inset-bottom))]
-  - Text is readable at all sizes (minimum 11px, avoid fixed large sizes)
+  - Text readable at all sizes (minimum 11px, avoid fixed large sizes)
   - Flex/grid rows do not overflow at small widths
   - Hamburger menu exists for nav links hidden on mobile
 
-### Reporting Format
-After EVERY UI component or section delivered, Claude appends one of:
-
-  ✅ Responsivlik: Qaydasındadır (375px · 768px · 1280px yoxlanıldı)
-
-  ⚠️ Responsivlik: [konkret problem açıqlaması]
-
-This report is MANDATORY — never skip it, even if everything is fine.
-
-### Breakpoints Reference
+Breakpoints:
   mobile:  default (no prefix) — < 640px
   sm:      640px+
   md:      768px+
   lg:      1024px+
   xl:      1280px+
 
-### Common Fixes Reference
+Common fixes:
   px-16 → px-4 md:px-8 lg:px-16
   px-[64px] → px-4 md:px-8 lg:px-16
   text-[44px] → text-[28px] sm:text-[36px] md:text-[44px]
   fixed bottom CTA → add pb-[calc(1rem+env(safe-area-inset-bottom))]
   hidden nav links → add hamburger menu for mobile
+
+### Reporting Format — append to EVERY delivery:
+
+  ✅ QA Gate: Keçdi | Responsivlik: Qaydasındadır (375px · 768px · 1280px)
+
+  or
+
+  ⚠️ QA Gate: [issue list] | Responsivlik: [issue description]
+
+This report is MANDATORY — never skip it, even if everything is fine.
 
 ---
 
