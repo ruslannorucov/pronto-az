@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import { createClient } from "@/lib/supabase/server";
 import Footer from "@/components/Footer";
+import { Search } from "lucide-react";
 
 const heroChips = [
   "🚿 Santexnik",
@@ -95,34 +96,30 @@ export default async function Home() {
             müqayisə edin, ən yaxşısını seçin.
           </p>
 
-          {/* FIX: Search bar — mobile-da stack layout */}
-          <div className="mx-auto w-full max-w-[660px] rounded-[24px] bg-white shadow-[0_16px_48px_rgba(13,31,60,0.22)]">
-            {/* Mobile: üst-alt stack */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:p-1.5">
-              {/* Şəhər seçimi */}
-              <div className="flex items-center gap-2 px-5 py-3 sm:py-2 sm:border-r-[1.5px] sm:border-[var(--border)] sm:shrink-0 sm:min-w-[160px] border-b border-[var(--border)] sm:border-b-0">
-                <span className="text-lg">📍</span>
-                <div>
-                  <select className="bg-transparent text-sm font-semibold text-[var(--navy)] outline-none cursor-pointer appearance-none w-full">
-                    <option>Bakı</option>
-                    <option>Sumqayıt</option>
-                    <option>Gəncə</option>
-                  </select>
-                  <p className="text-[11px] text-[var(--text-3)]">Şəhər</p>
-                </div>
-              </div>
-              {/* Axtarış input + düymə */}
-              <div className="flex flex-1 items-center px-4 py-2 sm:py-1.5">
-                <input
-                  type="text"
-                  placeholder="Santexnik, elektrik, təmizlik..."
-                  className="flex-1 bg-transparent text-[15px] text-[var(--navy)] placeholder:text-[var(--text-3)] outline-none min-w-0"
-                />
-                <button className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-[var(--primary)] text-white text-xl transition-colors hover:bg-[var(--primary-light)]">
-                  🔍
-                </button>
+          {/* Search bar — tək sıra, bütün ölçülərdə */}
+          <div className="flex mx-auto max-w-[660px] w-full items-center rounded-[24px] bg-white p-1.5 shadow-[0_16px_48px_rgba(13,31,60,0.22)]">
+            {/* Şəhər — yalnız sm+ ekranlarda göstər */}
+            <div className="hidden sm:flex items-center gap-2 border-r-[1.5px] border-[var(--border)] px-5 py-2 shrink-0 min-w-[160px]">
+              <span className="text-lg">📍</span>
+              <div>
+                <select className="bg-transparent text-sm font-semibold text-[var(--navy)] outline-none cursor-pointer appearance-none">
+                  <option>Bakı</option>
+                  <option>Sumqayıt</option>
+                  <option>Gəncə</option>
+                </select>
+                <p className="text-[11px] text-[var(--text-3)]">Şəhər</p>
               </div>
             </div>
+            {/* Input */}
+            <input
+              type="text"
+              placeholder="Santexnik, elektrik, təmizlik..."
+              className="flex-1 min-w-0 bg-transparent px-5 text-[14px] md:text-[15px] text-[var(--navy)] placeholder:text-[var(--text-3)] outline-none"
+            />
+            {/* Düymə */}
+            <button className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-[var(--primary)] text-white transition-colors hover:bg-[var(--primary-light)]">
+              <Search size={20} strokeWidth={2.5} />
+            </button>
           </div>
 
           <div className="mt-5 flex flex-wrap gap-2 justify-center">
