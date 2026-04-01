@@ -218,6 +218,7 @@ export default function AdminClient({
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const [localPending, setLocalPending] = useState<any[]>(pendingWorkerList);
+  const [sbOpen, setSbOpen] = useState(false);
 
   const showToast = (msg: string, type: "ok" | "err" = "ok") => {
     setToast({ msg, type });
@@ -391,26 +392,80 @@ export default function AdminClient({
   return (
     <div style={S.shell}>
 
-      {/* ── SIDEBAR ── */}
-      <div style={S.sb}>
-        <div style={S.sbLogo}>P</div>
+            {/* ── SIDEBAR ── */}
+      <div style={{
+        width: sbOpen ? 200 : 52,
+        background: "#0D1F3C",
+        display: "flex", flexDirection: "column" as const,
+        alignItems: sbOpen ? "flex-start" : "center",
+        padding: sbOpen ? "12px 10px" : "12px 0",
+        gap: 2, flexShrink: 0,
+        transition: "width 0.22s ease, padding 0.22s ease",
+        overflow: "hidden",
+      }}>
+        {/* Logo toggle */}
+        <div
+          onClick={() => setSbOpen(o => !o)}
+          style={{
+            width: sbOpen ? "100%" : 32,
+            height: 32, borderRadius: 8, background: "#1B4FD8",
+            display: "flex", alignItems: "center",
+            justifyContent: sbOpen ? "flex-start" : "center",
+            paddingLeft: sbOpen ? 10 : 0,
+            cursor: "pointer", marginBottom: 14, flexShrink: 0,
+            gap: 8, transition: "all 0.22s ease",
+          }}
+        >
+          <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: "#fff", flexShrink: 0 }}>P</span>
+          {sbOpen && (
+            <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: "#fff", whiteSpace: "nowrap" as const }}>
+              ronto<span style={{ color: "rgba(255,255,255,0.4)" }}>.az</span>
+            </span>
+          )}
+        </div>
 
         {([
-          { id: "dashboard" as Page, icon: icons.grid,      dot: false },
-          { id: "workers"   as Page, icon: icons.worker,    dot: localPending.length > 0 },
-          { id: "customers" as Page, icon: icons.customers, dot: false },
-          { id: "orders"    as Page, icon: icons.orders,    dot: false },
+          { id: "dashboard" as Page, icon: icons.grid,      dot: false,                   label: "Dashboard" },
+          { id: "workers"   as Page, icon: icons.worker,    dot: localPending.length > 0, label: "Ustalar" },
+          { id: "customers" as Page, icon: icons.customers, dot: false,                   label: "Müştərilər" },
+          { id: "orders"    as Page, icon: icons.orders,    dot: false,                   label: "Sifarişlər" },
         ]).map(item => (
           <div
             key={item.id}
-            title={PAGE_TITLES[item.id]}
+            title={sbOpen ? undefined : PAGE_TITLES[item.id]}
             onClick={() => setPage(item.id)}
-            style={{ ...S.siBase(page === item.id), position: "relative" }}
+            style={{
+              width: sbOpen ? "100%" : 36,
+              height: 36, borderRadius: 8,
+              display: "flex", alignItems: "center",
+              justifyContent: sbOpen ? "flex-start" : "center",
+              paddingLeft: sbOpen ? 10 : 0,
+              gap: sbOpen ? 10 : 0,
+              cursor: "pointer", transition: "all 0.15s",
+              background: page === item.id ? "#1B4FD8" : "transparent",
+              color: page === item.id ? "#fff" : "rgba(255,255,255,0.4)",
+              position: "relative" as const, flexShrink: 0,
+            }}
           >
-            {item.icon}
-            {item.dot && (
+            <div style={{ flexShrink: 0 }}>{item.icon}</div>
+            {sbOpen && (
+              <span style={{ fontSize: 12, fontWeight: 500, whiteSpace: "nowrap" as const, overflow: "hidden", flex: 1 }}>
+                {item.label}
+              </span>
+            )}
+            {item.dot && sbOpen && (
+              <span style={{
+                fontSize: 9, fontWeight: 700,
+                background: "#E8521A", color: "#fff",
+                padding: "1px 5px", borderRadius: 999,
+                marginLeft: "auto", flexShrink: 0,
+              }}>
+                {localPending.length}
+              </span>
+            )}
+            {item.dot && !sbOpen && (
               <div style={{
-                position: "absolute", top: 7, right: 7,
+                position: "absolute" as const, top: 7, right: 7,
                 width: 6, height: 6, borderRadius: "50%",
                 background: "#E8521A", border: "1.5px solid #0D1F3C",
               }} />
@@ -418,10 +473,27 @@ export default function AdminClient({
           </div>
         ))}
 
-        <div style={S.sbDiv} />
+        <div style={{
+          width: sbOpen ? "calc(100% - 4px)" : 24,
+          height: 1, background: "rgba(255,255,255,0.08)",
+          margin: "6px auto",
+        }} />
 
-        <div style={{ ...S.siBase(false), marginTop: "auto" }} title="Parametrlər">
-          {icons.settings}
+        <div
+          title={sbOpen ? undefined : "Parametrlər"}
+          style={{
+            width: sbOpen ? "100%" : 36,
+            height: 36, borderRadius: 8,
+            display: "flex", alignItems: "center",
+            justifyContent: sbOpen ? "flex-start" : "center",
+            paddingLeft: sbOpen ? 10 : 0,
+            gap: sbOpen ? 10 : 0,
+            cursor: "pointer", color: "rgba(255,255,255,0.4)",
+            marginTop: "auto", transition: "all 0.15s",
+          }}
+        >
+          <div style={{ flexShrink: 0 }}>{icons.settings}</div>
+          {sbOpen && <span style={{ fontSize: 12, fontWeight: 500, whiteSpace: "nowrap" as const }}>Parametrlər</span>}
         </div>
       </div>
 
