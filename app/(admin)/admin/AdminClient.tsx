@@ -396,11 +396,11 @@ export default function AdminClient({
         <div style={S.sbLogo}>P</div>
 
         {([
-          { id: "dashboard", icon: icons.grid },
-          { id: "workers",   icon: icons.worker,    dot: localPending.length > 0 },
-          { id: "customers", icon: icons.customers },
-          { id: "orders",    icon: icons.orders },
-        ] as const).map(item => (
+          { id: "dashboard" as Page, icon: icons.grid,      dot: false },
+          { id: "workers"   as Page, icon: icons.worker,    dot: localPending.length > 0 },
+          { id: "customers" as Page, icon: icons.customers, dot: false },
+          { id: "orders"    as Page, icon: icons.orders,    dot: false },
+        ]).map(item => (
           <div
             key={item.id}
             title={PAGE_TITLES[item.id]}
