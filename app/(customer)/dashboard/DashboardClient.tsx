@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,14 @@ type Order = {
   created_at: string;
   offerCount: number;
   categories: { name_az: string; icon: string } | null;
+  worker: {
+    id: string;
+    name: string;
+    rating: number;
+    reviewCount: number;
+    offerId: string;
+  } | null;
+  paymentStatus: string | null;
 };
 
 function formatTime(order: Order): string {
@@ -161,91 +169,334 @@ function OfferCard({ order }: { order: Order }) {
   );
 }
 
-// ── State 3: Usta yolda (tracking accordion) ──
-function TrackingCard({ order }: { order: Order }) {
+// ── Helpers ──
+function getInitials(name: string) {
+  return name.trim().split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase();
+}
+
+// ── State 3: Usta yolda (tracking card) ──
+function TrackingCard({ order, onReload }: { order: Order; onReload: () => void }) {
   const [open, setOpen] = useState(true);
+  const [showChat, setShowChat] = useState(false);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
+  const worker = order.worker;
+  const paymentStatus = order.paymentStatus;
+  const supabase = createClient();
+
+  const handleConfirmPayment = async () => {
+    if (!worker?.offerId || confirmingPayment) return;
+    setConfirmingPayment(true);
+    try {
+      await supabase.from("payments").insert({
+        offer_id: worker.offerId,
+        amount: 0,
+        commission: 0,
+        status: "held",
+        epoint_ref: null,
+      });
+      await onReload();
+    } catch (e) {
+      console.error("payment error:", e);
+    } finally {
+      setConfirmingPayment(false);
+    }
+  };
 
   const steps = [
-    { label: "Qəbul", done: true },
-    { label: "Ödəniş", done: true },
-    { label: "Yolda", done: false, active: true },
-    { label: "Gəldi", done: false },
-    { label: "Bitdi", done: false },
+    { label: "Qəbul",   done: true,  active: false },
+    { label: "Ödəniş",  done: true,  active: false },
+    { label: "Yolda",   done: false, active: true  },
+    { label: "Gəldi",   done: false, active: false },
+    { label: "Bitdi",   done: false, active: false },
   ];
 
   return (
-    <div className="bg-white border-[1.5px] border-[#A7F3D0] rounded-2xl overflow-hidden">
+    <div style={{ background: "#fff", border: "1.5px solid #A7F3D0", borderRadius: 18, overflow: "hidden", boxShadow: "0 4px 16px rgba(16,185,129,0.07)" }}>
+
+      {/* ── Top bar ── */}
       <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-[#F0FBF7] transition-colors text-left"
+        onClick={() => setOpen(o => !o)}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
       >
-        <div className="w-2 h-2 rounded-full bg-[#10B981] shrink-0 animate-pulse" />
-        <div className="flex-1">
-          <p className="text-[13px] font-bold text-[var(--navy)]">
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#10B981", display: "inline-block", animation: "pulse-out 1.5s ease-in-out infinite", flexShrink: 0 }} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#0D1F3C" }}>
             {order.categories?.icon} {order.categories?.name_az} · {formatId(order.id)}
-          </p>
-          <p className="text-[11px] text-[var(--gray-400)] mt-0.5">
-            📍 {order.address ?? "Ünvan yoxdur"} · ~12 dəq
-          </p>
+          </span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-bold text-[#059669] bg-[#D1FAE5] px-2 py-0.5 rounded-full">
-            Yolda
-          </span>
-          <span className={`text-[var(--gray-400)] text-xs transition-transform duration-250 ${open ? "rotate-180" : ""}`}>
-            ▾
-          </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "#059669", background: "#D1FAE5", padding: "3px 9px", borderRadius: 999 }}>Yolda</span>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
+            <path d="M3 5l4 4 4-4" stroke="#94A3C0" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
         </div>
       </button>
 
-      <div className={`overflow-hidden transition-all duration-300 ${open ? "max-h-[240px]" : "max-h-0"}`}>
-        <div className="px-4 pb-4">
-          {/* Step progress */}
-          <div className="flex items-center justify-between mb-4 relative">
-            <div className="absolute top-[9px] left-0 right-0 h-[2px] bg-[var(--gray-200)] z-0" />
-            {steps.map((s, i) => (
-              <div key={i} className="flex flex-col items-center z-10">
-                <div className={`w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center text-[8px] mb-1 transition-all ${
-                  s.done ? "bg-[#10B981] border-[#10B981] text-white" :
-                  s.active ? "bg-[var(--primary)] border-[var(--primary)] text-white animate-pulse" :
-                  "bg-white border-[var(--gray-200)]"
-                }`}>
-                  {s.done ? "✓" : s.active ? "→" : ""}
-                </div>
-                <p className={`text-[9px] ${
-                  s.done ? "text-[#10B981] font-semibold" :
-                  s.active ? "text-[var(--primary)] font-bold" :
-                  "text-[var(--gray-400)]"
-                }`}>
-                  {s.label}
-                </p>
+      {/* ── Body ── */}
+      <div style={{ maxHeight: open ? "500px" : "0", overflow: "hidden", transition: "max-height 0.35s ease" }}>
+        <div style={{ borderTop: "0.5px solid #E8FDF5" }}>
+
+          {/* Usta row */}
+          {worker ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: "0.5px solid #F0F9F6" }}>
+              <div style={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, background: "linear-gradient(135deg,#1B4FD8,#2563EB)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#fff", fontFamily: "'Playfair Display', serif" }}>
+                {getInitials(worker.name)}
               </div>
-            ))}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#0D1F3C", marginBottom: 3 }}>{worker.name}</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <span style={{ color: "#F59E0B", fontSize: 12 }}>
+                    {"★".repeat(Math.round(worker.rating))}{"☆".repeat(5 - Math.round(worker.rating))}
+                  </span>
+                  <span style={{ fontSize: 11, color: "#94A3C0" }}>
+                    {worker.rating > 0 ? `${worker.rating.toFixed(1)} · ${worker.reviewCount} rəy` : "Yeni usta"}
+                  </span>
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+                <button
+                  onClick={e => { e.stopPropagation(); setShowChat(true); }}
+                  style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: "#1B4FD8", background: "#EFF4FF", border: "1px solid #BFCFFE", padding: "6px 12px", borderRadius: 9, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 1.5C4.4 1.5 1.5 4 1.5 7.1c0 1.1.3 2.2 1 3.1L1.5 14l3.4-1.2c.9.4 1.9.7 3.1.7 3.6 0 6.5-2.5 6.5-5.6C14.5 4 11.6 1.5 8 1.5z" stroke="#1B4FD8" strokeWidth="1.3"/></svg>
+                  Chat
+                </button>
+                <Link
+                  href={`/workers/${worker.id}`}
+                  onClick={e => e.stopPropagation()}
+                  style={{ fontSize: 11, fontWeight: 600, color: "#4A5878", background: "#F8FAFF", border: "0.5px solid #E4EAFB", padding: "6px 12px", borderRadius: 9, textAlign: "center", textDecoration: "none", whiteSpace: "nowrap" }}
+                >
+                  Profil →
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #F0F9F6" }}>
+              <p style={{ fontSize: 12, color: "#94A3C0" }}>📍 {order.address ?? "Ünvan yoxdur"}</p>
+            </div>
+          )}
+
+          {/* Ödəniş təsdiqləmə düyməsi */}
+          {!paymentStatus && worker && (
+            <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #F0F9F6", background: "#FFFBEB" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "#92400E" }}>💳 Ödənişi təsdiqlə</p>
+                  <p style={{ fontSize: 10, color: "#B45309", marginTop: 2 }}>Usta yalnız ödənişdən sonra ünvanı görəcək</p>
+                </div>
+                <button
+                  onClick={e => { e.stopPropagation(); handleConfirmPayment(); }}
+                  disabled={confirmingPayment}
+                  style={{
+                    padding: "8px 16px", borderRadius: 10, border: "none",
+                    background: "linear-gradient(135deg,#F59E0B,#D97706)",
+                    color: "#fff", fontSize: 11, fontWeight: 700,
+                    cursor: confirmingPayment ? "not-allowed" : "pointer",
+                    opacity: confirmingPayment ? 0.7 : 1,
+                    whiteSpace: "nowrap", flexShrink: 0, fontFamily: "inherit",
+                    boxShadow: "0 3px 10px rgba(245,158,11,0.3)",
+                  }}
+                >
+                  {confirmingPayment ? "..." : "Təsdiqlə →"}
+                </button>
+              </div>
+            </div>
+          )}
+          {paymentStatus === "held" && (
+            <div style={{ padding: "10px 16px", borderBottom: "0.5px solid #F0F9F6", background: "#F0FDF4" }}>
+              <p style={{ fontSize: 11, color: "#059669", fontWeight: 600 }}>✓ Ödəniş təsdiqləndi — usta yola düşə bilər</p>
+            </div>
+          )}
+
+          {/* Steps */}
+          <div style={{ padding: "14px 16px 12px", position: "relative" }}>
+            <div style={{ position: "absolute", top: 23, left: 28, right: 28, height: 2, background: "#E4EAFB", zIndex: 0 }} />
+            <div style={{ position: "absolute", top: 23, left: 28, width: "40%", height: 2, background: "#10B981", zIndex: 1 }} />
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", position: "relative", zIndex: 2 }}>
+              {steps.map((s, i) => (
+                <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: "50%",
+                    background: s.done ? "#10B981" : s.active ? "#1B4FD8" : "#fff",
+                    border: s.done ? "2px solid #10B981" : s.active ? "2px solid #1B4FD8" : "2px solid #E4EAFB",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 9, color: "#fff",
+                    animation: s.active ? "pulse-out 1.5s infinite" : "none",
+                  }}>
+                    {s.done ? "✓" : s.active ? "→" : ""}
+                  </div>
+                  <span style={{ fontSize: 9, fontWeight: s.done ? 600 : s.active ? 700 : 400, color: s.done ? "#10B981" : s.active ? "#1B4FD8" : "#94A3C0" }}>
+                    {s.label}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Mini map */}
-          <div className="bg-[#E8F0FE] rounded-xl h-[90px] relative overflow-hidden flex items-center justify-center">
-            <div
-              className="absolute inset-0 opacity-20"
-              style={{
-                backgroundImage: "linear-gradient(#94A3C0 1px,transparent 1px),linear-gradient(90deg,#94A3C0 1px,transparent 1px)",
-                backgroundSize: "20px 20px",
-              }}
-            />
-            <div className="relative z-10 flex items-center gap-2">
-              <div className="w-4 h-4 bg-red-500 rounded-tl-full rounded-tr-full rounded-br-none rounded-bl-full rotate-[-45deg] border-2 border-white shadow" />
-              <div className="w-8 border-t-2 border-dashed border-[var(--primary)]" />
-              <span className="text-xl" style={{ animation: "walk 1s ease-in-out infinite alternate" }}>
-                🚶
-              </span>
+          <div style={{ margin: "0 16px 16px", background: "#EEF3FF", borderRadius: 12, height: 76, position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ position: "absolute", inset: 0, opacity: 0.15, backgroundImage: "linear-gradient(#94A3C0 1px,transparent 1px),linear-gradient(90deg,#94A3C0 1px,transparent 1px)", backgroundSize: "18px 18px" }} />
+            <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 14, height: 14, background: "#EF4444", borderRadius: "50% 50% 0 50%", transform: "rotate(-45deg)", border: "2px solid #fff", flexShrink: 0 }} />
+              <div style={{ width: 40, borderTop: "2px dashed #1B4FD8" }} />
+              <span style={{ fontSize: 20, animation: "walk 1s ease-in-out infinite alternate" }}>🚶</span>
             </div>
-            <div className="absolute bottom-2 left-3 text-[9px] font-semibold text-[var(--primary)] bg-white rounded px-1.5 py-0.5">
-              Siz
-            </div>
-            <div className="absolute top-2 right-3 text-[9px] font-bold text-[var(--navy)] bg-white rounded px-1.5 py-0.5 border border-[var(--gray-200)]">
-              ~12 dəq
-            </div>
+            <div style={{ position: "absolute", bottom: 6, left: 10, fontSize: 9, fontWeight: 600, color: "#1B4FD8", background: "#fff", borderRadius: 5, padding: "2px 6px" }}>Siz</div>
+            <div style={{ position: "absolute", top: 6, right: 10, fontSize: 9, fontWeight: 700, color: "#0D1F3C", background: "#fff", borderRadius: 5, padding: "2px 6px", border: "0.5px solid #E4EAFB" }}>~12 dəq</div>
           </div>
+        </div>
+      </div>
+
+      {/* Chat Modal */}
+      {showChat && worker && (
+        <ChatModal
+          jobId={order.id}
+          offerId={worker.offerId}
+          workerName={worker.name}
+          onClose={() => setShowChat(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Chat Modal ──
+function ChatModal({ jobId, workerName, onClose }: {
+  jobId: string;
+  offerId: string;
+  workerName: string;
+  onClose: () => void;
+}) {
+  const [messages, setMessages] = useState<any[]>([]);
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setUserId(user.id);
+      const { data } = await supabase
+        .from("messages")
+        .select("id, sender_id, content, created_at")
+        .eq("job_id", jobId)
+        .order("created_at", { ascending: true });
+      setMessages(data ?? []);
+      if (user) {
+        await supabase
+          .from("messages")
+          .update({ read_at: new Date().toISOString() })
+          .eq("job_id", jobId)
+          .neq("sender_id", user.id)
+          .is("read_at", null);
+      }
+    };
+    init();
+    const channel = supabase
+      .channel(`chat-${jobId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `job_id=eq.${jobId}` },
+        (payload) => {
+          setMessages(prev => [...prev, payload.new]);
+          setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
+        })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [jobId]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const sendMessage = async () => {
+    if (!text.trim() || !userId || sending) return;
+    setSending(true);
+    const msg = text.trim();
+    setText("");
+    await supabase.from("messages").insert({ job_id: jobId, sender_id: userId, content: msg });
+    setSending(false);
+  };
+
+  function timeStr(d: string) {
+    const dt = new Date(d);
+    return `${String(dt.getHours()).padStart(2,"0")}:${String(dt.getMinutes()).padStart(2,"0")}`;
+  }
+
+  const initials = getInitials(workerName);
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center", background: "rgba(13,31,60,0.5)", backdropFilter: "blur(4px)" }}
+      onClick={onClose}
+    >
+      <div
+        style={{ width: "100%", maxWidth: 480, background: "#fff", borderRadius: "20px 20px 0 0", display: "flex", flexDirection: "column", height: "70vh", maxHeight: 560 }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderBottom: "0.5px solid #E4EAFB", flexShrink: 0 }}>
+          <div style={{ width: 38, height: 38, borderRadius: "50%", background: "linear-gradient(135deg,#1B4FD8,#2563EB)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0, fontFamily: "'Playfair Display', serif" }}>
+            {initials}
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "#0D1F3C" }}>{workerName}</p>
+            <p style={{ fontSize: 10, color: "#10B981", marginTop: 1 }}>● Aktiv sifariş · Yolda</p>
+          </div>
+          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: "50%", background: "#F8FAFF", border: "0.5px solid #E4EAFB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#4A5878", cursor: "pointer", fontFamily: "inherit" }}>✕</button>
+        </div>
+
+        {/* Messages */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "14px", display: "flex", flexDirection: "column", gap: 10 }}>
+          {messages.length === 0 && (
+            <div style={{ textAlign: "center", paddingTop: 32 }}>
+              <p style={{ fontSize: 12, color: "#94A3C0" }}>Söhbəti başladın 👋</p>
+            </div>
+          )}
+          {messages.map((msg) => {
+            const isMe = msg.sender_id === userId;
+            return (
+              <div key={msg.id} style={{ display: "flex", justifyContent: isMe ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 8 }}>
+                {!isMe && (
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#1B4FD8,#2563EB)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff", flexShrink: 0, fontFamily: "'Playfair Display', serif" }}>
+                    {initials}
+                  </div>
+                )}
+                <div style={{ maxWidth: "72%" }}>
+                  <div style={{ padding: "10px 12px", borderRadius: isMe ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: isMe ? "#1B4FD8" : "#F1F5FE", color: isMe ? "#fff" : "#0D1F3C", fontSize: 13, lineHeight: 1.5 }}>
+                    {msg.content}
+                  </div>
+                  <p style={{ fontSize: 9, color: "#94A3C0", marginTop: 3, textAlign: isMe ? "right" : "left", paddingLeft: isMe ? 0 : 4, paddingRight: isMe ? 4 : 0 }}>
+                    {timeStr(msg.created_at)}{isMe ? " ✓✓" : ""}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Input */}
+        <div style={{ padding: "10px 12px", borderTop: "0.5px solid #E4EAFB", display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+          <div style={{ flex: 1, background: "#F8FAFF", border: "0.5px solid #E4EAFB", borderRadius: 22, padding: "9px 14px" }}>
+            <textarea
+              value={text}
+              onChange={e => setText(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+              placeholder="Mesaj yazın..."
+              rows={1}
+              style={{ width: "100%", background: "transparent", border: "none", outline: "none", fontSize: 13, color: "#0D1F3C", resize: "none", maxHeight: 80, fontFamily: "inherit" }}
+            />
+          </div>
+          <button
+            onClick={sendMessage}
+            disabled={!text.trim() || sending}
+            style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#1B4FD8,#2563EB)", display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer", flexShrink: 0, opacity: !text.trim() || sending ? 0.4 : 1, transition: "opacity 0.15s" }}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M14 8L2 2l2 6-2 6 12-6z" fill="white"/>
+            </svg>
+          </button>
         </div>
       </div>
     </div>
@@ -294,6 +545,51 @@ export default function DashboardClient() {
     const catMap: Record<string, any> = {};
     (catsData ?? []).forEach((c: any) => { catMap[c.id] = c; });
 
+    // In-progress sifarişlər üçün qəbul edilmiş offer-i tap
+    const inProgressIds = (activeOrders ?? [])
+      .filter((o: any) => o.status === "in_progress")
+      .map((o: any) => o.id);
+
+    // Accepted offers
+    const { data: acceptedOffers } = inProgressIds.length > 0
+      ? await supabase
+          .from("offers")
+          .select("id, job_id, worker_id, price")
+          .in("job_id", inProgressIds)
+          .eq("status", "accepted")
+      : { data: [] };
+
+    // Worker profiles + names
+    const workerIds = [...new Set((acceptedOffers ?? []).map((o: any) => o.worker_id))];
+    const { data: workerProfiles } = workerIds.length > 0
+      ? await supabase
+          .from("worker_profiles")
+          .select("user_id, rating, review_count")
+          .in("user_id", workerIds)
+      : { data: [] };
+    const { data: workerNames } = workerIds.length > 0
+      ? await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", workerIds)
+      : { data: [] };
+
+    // Maps
+    const wpMap: Record<string, any> = {};
+    (workerProfiles ?? []).forEach((w: any) => { wpMap[w.user_id] = w; });
+    const wnMap: Record<string, string> = {};
+    (workerNames ?? []).forEach((p: any) => { wnMap[p.id] = p.full_name; });
+    const offerByJob: Record<string, any> = {};
+    (acceptedOffers ?? []).forEach((o: any) => { offerByJob[o.job_id] = o; });
+
+    // Payment status for accepted offers
+    const acceptedOfferIds = (acceptedOffers ?? []).map((o: any) => o.id);
+    const { data: paymentsData } = acceptedOfferIds.length > 0
+      ? await supabase.from("payments").select("offer_id, status").in("offer_id", acceptedOfferIds)
+      : { data: [] };
+    const payStatusMap: Record<string, string> = {};
+    (paymentsData ?? []).forEach((p: any) => { payStatusMap[p.offer_id] = p.status; });
+
     const ordersWithOffers = await Promise.all(
       (activeOrders ?? []).map(async (order: any) => {
         const { count } = await supabase
@@ -302,10 +598,22 @@ export default function DashboardClient() {
           .eq("job_id", order.id)
           .eq("status", "pending");
 
+        // Worker info for in_progress
+        const acceptedOffer = offerByJob[order.id] ?? null;
+        const worker = acceptedOffer ? {
+          id: acceptedOffer.worker_id,
+          name: wnMap[acceptedOffer.worker_id] ?? "Usta",
+          rating: wpMap[acceptedOffer.worker_id]?.rating ?? 0,
+          reviewCount: wpMap[acceptedOffer.worker_id]?.review_count ?? 0,
+          offerId: acceptedOffer.id,
+        } : null;
+
         return {
           ...order,
           categories: catMap[order.category_id] ?? null,
           offerCount: count ?? 0,
+          worker,
+          paymentStatus: payStatusMap[acceptedOffer?.id ?? ""] ?? null,
         } as Order;
       })
     );
@@ -487,7 +795,7 @@ export default function DashboardClient() {
             </div>
             <div className="space-y-3">
               {activeOrders.map(order => (
-                <TrackingCard key={order.id} order={order} />
+                <TrackingCard key={order.id} order={order} onReload={load} />
               ))}
             </div>
           </div>

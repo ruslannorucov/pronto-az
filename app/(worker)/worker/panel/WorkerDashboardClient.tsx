@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import SendOfferModal from "@/components/SendOfferModal";
 
@@ -175,6 +175,152 @@ function ActionButton({ paymentStatus, offerId, onAction, loading }: { paymentSt
   return null;
 }
 
+// ── Worker Chat Modal ─────────────────────────────────────────────────────────
+function WorkerChatModal({ jobId, customerName, onClose }: {
+  jobId: string;
+  offerId: string;
+  customerName: string;
+  onClose: () => void;
+}) {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+  const [messages, setMessages] = useState<any[]>([]);
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setUserId(user.id);
+      const { data } = await supabase
+        .from("messages")
+        .select("id, sender_id, content, created_at")
+        .eq("job_id", jobId)
+        .order("created_at", { ascending: true });
+      setMessages(data ?? []);
+      if (user) {
+        await supabase.from("messages")
+          .update({ read_at: new Date().toISOString() })
+          .eq("job_id", jobId)
+          .neq("sender_id", user.id)
+          .is("read_at", null);
+      }
+    };
+    init();
+    const channel = supabase.channel(`worker-chat-${jobId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `job_id=eq.${jobId}` },
+        (payload) => {
+          setMessages(prev => [...prev, payload.new]);
+          setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
+        })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [jobId]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const sendMessage = async () => {
+    if (!text.trim() || !userId || sending) return;
+    setSending(true);
+    const msg = text.trim();
+    setText("");
+    await supabase.from("messages").insert({ job_id: jobId, sender_id: userId, content: msg });
+    setSending(false);
+  };
+
+  function timeStr(d: string) {
+    const dt = new Date(d);
+    return `${String(dt.getHours()).padStart(2,"0")}:${String(dt.getMinutes()).padStart(2,"0")}`;
+  }
+
+  function getInit(name: string) {
+    return name.trim().split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase();
+  }
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center", background: "rgba(13,31,60,0.5)", backdropFilter: "blur(4px)" }}
+      onClick={onClose}
+    >
+      <div
+        style={{ width: "100%", maxWidth: 480, background: "#fff", borderRadius: "20px 20px 0 0", display: "flex", flexDirection: "column", height: "70vh", maxHeight: 560 }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderBottom: "0.5px solid #E4EAFB", flexShrink: 0 }}>
+          <div style={{ width: 38, height: 38, borderRadius: "50%", background: "linear-gradient(135deg,#0A7A4F,#10B981)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0, fontFamily: "'Playfair Display', serif" }}>
+            {getInit(customerName)}
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "#0D1F3C" }}>{customerName}</p>
+            <p style={{ fontSize: 10, color: "#1B4FD8", marginTop: 1 }}>● Aktiv sifariş</p>
+          </div>
+          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: "50%", background: "#F8FAFF", border: "0.5px solid #E4EAFB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#4A5878", cursor: "pointer", fontFamily: "inherit" }}>✕</button>
+        </div>
+
+        {/* Messages */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "14px", display: "flex", flexDirection: "column", gap: 10 }}>
+          {messages.length === 0 && (
+            <div style={{ textAlign: "center", paddingTop: 32 }}>
+              <p style={{ fontSize: 12, color: "#94A3C0" }}>Müştəri ilə söhbəti başladın 👋</p>
+            </div>
+          )}
+          {messages.map((msg) => {
+            const isMe = msg.sender_id === userId;
+            return (
+              <div key={msg.id} style={{ display: "flex", justifyContent: isMe ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 8 }}>
+                {!isMe && (
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#0A7A4F,#10B981)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff", flexShrink: 0, fontFamily: "'Playfair Display', serif" }}>
+                    {getInit(customerName)}
+                  </div>
+                )}
+                <div style={{ maxWidth: "72%" }}>
+                  <div style={{ padding: "10px 12px", borderRadius: isMe ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: isMe ? "#1B4FD8" : "#F1F5FE", color: isMe ? "#fff" : "#0D1F3C", fontSize: 13, lineHeight: 1.5 }}>
+                    {msg.content}
+                  </div>
+                  <p style={{ fontSize: 9, color: "#94A3C0", marginTop: 3, textAlign: isMe ? "right" : "left", paddingLeft: isMe ? 0 : 4, paddingRight: isMe ? 4 : 0 }}>
+                    {timeStr(msg.created_at)}{isMe ? " ✓✓" : ""}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Input */}
+        <div style={{ padding: "10px 12px", borderTop: "0.5px solid #E4EAFB", display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+          <div style={{ flex: 1, background: "#F8FAFF", border: "0.5px solid #E4EAFB", borderRadius: 22, padding: "9px 14px" }}>
+            <textarea
+              value={text}
+              onChange={e => setText(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+              placeholder="Mesaj yazın..."
+              rows={1}
+              style={{ width: "100%", background: "transparent", border: "none", outline: "none", fontSize: 13, color: "#0D1F3C", resize: "none", maxHeight: 80, fontFamily: "inherit" }}
+            />
+          </div>
+          <button
+            onClick={sendMessage}
+            disabled={!text.trim() || sending}
+            style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#1B4FD8,#2563EB)", display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer", flexShrink: 0, opacity: !text.trim() || sending ? 0.4 : 1, transition: "opacity 0.15s" }}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M14 8L2 2l2 6-2 6 12-6z" fill="white"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function WorkerDashboardClient({ userId, fullName, rating, categoryId }: Props) {
   const [activeTab, setActiveTab] = useState<0 | 1 | 2>(0);
   const [newJobs, setNewJobs] = useState<JobRequest[]>([]);
@@ -190,6 +336,7 @@ export default function WorkerDashboardClient({ userId, fullName, rating, catego
   const [toast, setToast] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [detailJob, setDetailJob] = useState<JobRequest | null>(null);
+  const [chatOffer, setChatOffer] = useState<ActiveOffer | null>(null);
   const [pendingOffers, setPendingOffers] = useState<PendingOffer[]>([]);
   const [loadingPending, setLoadingPending] = useState(true);
 
@@ -264,85 +411,55 @@ export default function WorkerDashboardClient({ userId, fullName, rating, catego
     }
   }, [supabase, userId, categoryId]);
 
-  // ── Fetch active offers — join olmadan ─────────────────────────────────────
+  // ── Fetch active offers — RPC ilə (RLS bypass) ────────────────────────────
   const fetchActiveOffers = useCallback(async () => {
     setLoadingActive(true);
     try {
-      // 1. Qəbul edilmiş offer-lər
-      const { data: offersRaw, error } = await supabase
-        .from("offers")
-        .select("id, price, status, job_id")
-        .eq("worker_id", userId)
-        .eq("status", "accepted");
+      const { data: rows, error } = await supabase
+        .rpc("get_worker_active_jobs", { p_worker_id: userId });
       if (error) throw error;
 
-      if (!offersRaw || offersRaw.length === 0) { setActiveOffers([]); setLoadingActive(false); return; }
+      if (!rows || rows.length === 0) { setActiveOffers([]); setLoadingActive(false); return; }
 
-      const jobIds = offersRaw.map((o: any) => o.job_id);
-
-      // 2. Job requests
-      const { data: jobsRaw } = await supabase
-        .from("job_requests")
-        .select("id, address, description, time_type, exact_datetime, urgency, preferred_time, status, category_id, customer_id")
-        .in("id", jobIds)
-        .in("status", ["in_progress", "open"]);
-
-      // 3. Kategoriyalar
-      const catIds = [...new Set((jobsRaw ?? []).map((j: any) => j.category_id).filter(Boolean))];
+      // Kategoriyalar
+      const catIds = [...new Set(rows.map((r: any) => r.job_category_id).filter(Boolean))];
       const { data: catsData } = catIds.length > 0
         ? await supabase.from("categories").select("id, name_az").in("id", catIds)
         : { data: [] };
       const catMap: Record<string, string> = {};
       (catsData ?? []).forEach((c: any) => { catMap[c.id] = c.name_az; });
 
-      // 4. Müştəri adları
-      const custIds = [...new Set((jobsRaw ?? []).map((j: any) => j.customer_id).filter(Boolean))];
+      // Müştəri adları
+      const custIds = [...new Set(rows.map((r: any) => r.job_customer_id).filter(Boolean))];
       const { data: custsData } = custIds.length > 0
         ? await supabase.from("profiles").select("id, full_name").in("id", custIds)
         : { data: [] };
       const custMap: Record<string, string> = {};
       (custsData ?? []).forEach((c: any) => { custMap[c.id] = c.full_name; });
 
-      // 5. Ödənişlər
-      const offerIds = offersRaw.map((o: any) => o.id);
-      const { data: paymentsData } = await supabase
-        .from("payments").select("offer_id, status").in("offer_id", offerIds);
-      const payMap: Record<string, string> = {};
-      (paymentsData ?? []).forEach((p: any) => { payMap[p.offer_id] = p.status; });
-
-      // Merge
-      const jobMap: Record<string, any> = {};
-      (jobsRaw ?? []).forEach((j: any) => { jobMap[j.id] = j; });
-
-      const offers: ActiveOffer[] = offersRaw
-        .filter((o: any) => jobMap[o.job_id])
-        .map((o: any) => {
-          const j = jobMap[o.job_id];
-          return {
-            id: o.id,
-            job_id: o.job_id,
-            price: o.price,
-            status: o.status,
-            job: {
-              id: j.id,
-              category_name: catMap[j.category_id] ?? "Xidmət",
-              address: j.address,
-              description: j.description,
-              time_type: j.time_type,
-              exact_datetime: j.exact_datetime,
-              urgency: j.urgency,
-              preferred_time: j.preferred_time,
-              status: j.status,
-              customer_name: custMap[j.customer_id] ?? "Müştəri",
-            },
-            payment_status: payMap[o.id] ?? null,
-          };
-        })
-        .sort((a: ActiveOffer, b: ActiveOffer) => {
-          const ta = a.job.exact_datetime ? new Date(a.job.exact_datetime).getTime() : 0;
-          const tb = b.job.exact_datetime ? new Date(b.job.exact_datetime).getTime() : 0;
-          return ta - tb;
-        });
+      const offers: ActiveOffer[] = rows.map((r: any) => ({
+        id: r.offer_id,
+        job_id: r.job_id,
+        price: r.offer_price,
+        status: r.offer_status,
+        job: {
+          id: r.job_id,
+          category_name: catMap[r.job_category_id] ?? "Xidmət",
+          address: r.job_address,
+          description: r.job_description,
+          time_type: r.job_time_type,
+          exact_datetime: r.job_exact_datetime,
+          urgency: r.job_urgency,
+          preferred_time: r.job_preferred_time,
+          status: r.job_status,
+          customer_name: custMap[r.job_customer_id] ?? "Müştəri",
+        },
+        payment_status: r.payment_status ?? null,
+      })).sort((a: ActiveOffer, b: ActiveOffer) => {
+        const ta = a.job.exact_datetime ? new Date(a.job.exact_datetime).getTime() : 0;
+        const tb = b.job.exact_datetime ? new Date(b.job.exact_datetime).getTime() : 0;
+        return ta - tb;
+      });
 
       setActiveOffers(offers);
     } catch (err) {
@@ -809,8 +926,8 @@ export default function WorkerDashboardClient({ userId, fullName, rating, catego
                             </div>
                           )}
                           <div className="flex gap-1.5">
-                            <button onClick={e => e.stopPropagation()} className="flex-1 py-2 rounded-xl text-[11px] font-semibold transition-all hover:bg-[--primary-bg]"
-                              style={{ border: "0.5px solid var(--gray-200, #E4EAFB)", color: "var(--primary, #1B4FD8)" }}>Chat</button>
+                            <button onClick={e => { e.stopPropagation(); setChatOffer(offer); }} className="flex-1 py-2 rounded-xl text-[11px] font-semibold transition-all hover:bg-[--primary-bg]"
+                              style={{ border: "0.5px solid var(--gray-200, #E4EAFB)", color: "var(--primary, #1B4FD8)" }}>💬 Chat</button>
                             <ActionButton paymentStatus={offer.payment_status} offerId={offer.id} onAction={handleAction} loading={actionLoading === offer.id} />
                           </div>
                         </div>
@@ -971,6 +1088,16 @@ export default function WorkerDashboardClient({ userId, fullName, rating, catego
           </div>
         );
       })()}
+
+      {/* ── WORKER CHAT MODAL ── */}
+      {chatOffer && (
+        <WorkerChatModal
+          jobId={chatOffer.job_id}
+          customerName={chatOffer.job.customer_name}
+          offerId={chatOffer.id}
+          onClose={() => setChatOffer(null)}
+        />
+      )}
 
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[90%]">
