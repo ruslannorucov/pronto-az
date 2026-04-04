@@ -387,152 +387,131 @@ export default function DashboardClient() {
         }
       `}</style>
 
-      <div className="max-w-5xl mx-auto px-5 py-6">
-        {/* Header */}
+      <div className="max-w-2xl mx-auto px-4 sm:px-5 py-6">
+
+        {/* ── Header ── */}
         <div className="flex items-start justify-between mb-5">
           <div>
-            <h1 className="font-serif text-[24px] font-bold text-[var(--navy)]">
+            <h1 className="font-serif text-[22px] sm:text-[24px] font-bold text-[var(--navy)]">
               Salam, {firstName}! 👋
             </h1>
-            <p className="text-[13px] text-[var(--gray-400)] mt-1">
+            <p className="text-[12px] text-[var(--gray-400)] mt-1">
               {offerOrders.length > 0
                 ? `${offerOrders.length} sifarişinizə təklif gəldi`
-                : searchingOrders.length > 0
-                ? `${searchingOrders.length} sifariş usta gözləyir`
                 : activeOrders.length > 0
                 ? `${activeOrders.length} aktiv sifarişiniz var`
+                : searchingOrders.length > 0
+                ? `${searchingOrders.length} sifariş usta gözləyir`
                 : "Aktiv sifariş yoxdur"}
             </p>
           </div>
-          <Link
-            href="/request/new"
-            className="bg-[var(--primary)] text-white font-bold text-[13px] px-5 py-2.5 rounded-xl hover:bg-[var(--primary-light)] transition-colors shrink-0"
-          >
-            + Yeni Sifariş
-          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/dashboard/history"
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text-2)] hover:text-[var(--primary)] transition-colors px-3 py-2 rounded-xl hover:bg-[var(--primary-bg)]"
+            >
+              <span>🔄</span>
+              <span className="hidden sm:inline">Tarixçə</span>
+            </Link>
+            <Link
+              href="/request/new"
+              className="bg-[var(--primary)] text-white font-bold text-[12px] sm:text-[13px] px-4 py-2.5 rounded-xl hover:bg-[var(--primary-light)] transition-colors"
+            >
+              + Yeni Sifariş
+            </Link>
+          </div>
         </div>
 
-        {/* Email xəbərdarlığı */}
+        {/* ── Email xəbərdarlığı ── */}
         {!isVerified && (
-          <div className="bg-[#FEF3C7] border border-[#FCD34D] rounded-xl px-4 py-3 flex items-center gap-3 mb-5">
-            <span className="text-lg">📧</span>
-            <p className="text-[13px] text-[#92400E] flex-1">
-              Emailinizi təsdiqləyin — hesabınız tam aktiv deyil
-            </p>
-            <button className="bg-[#F59E0B] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shrink-0">
-              Emaili yoxla
-            </button>
+          <div className="bg-[#FEF3C7] border border-[#FCD34D] rounded-xl px-4 py-3 flex items-center gap-3 mb-4">
+            <span>📧</span>
+            <p className="text-[12px] text-[#92400E] flex-1">Emailinizi təsdiqləyin — hesabınız tam aktiv deyil</p>
+            <button className="bg-[#F59E0B] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shrink-0">Emaili yoxla</button>
           </div>
         )}
 
-        {/* Worker üçün İş paneli keçidi */}
+        {/* ── Worker banner ── */}
         {profile?.role === "worker" && (
-          <div className="bg-[var(--primary-bg)] border border-[var(--primary-mid)] rounded-xl px-4 py-3 flex items-center gap-3 mb-5">
-            <span className="text-lg">🔧</span>
-            <p className="text-[13px] text-[var(--navy)] flex-1">
-              Usta panelinizə keçmək istəyirsiniz?
-            </p>
-            <a
-              href="/worker/dashboard"
-              className="bg-[var(--primary)] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shrink-0 hover:bg-[var(--primary-light)] transition-colors"
-            >
+          <div className="bg-[var(--primary-bg)] border border-[var(--primary-mid)] rounded-xl px-4 py-3 flex items-center gap-3 mb-4">
+            <span>🔧</span>
+            <p className="text-[12px] text-[var(--navy)] flex-1">Usta panelinizə keçmək istəyirsiniz?</p>
+            <a href="/worker/panel" className="bg-[var(--primary)] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shrink-0 hover:bg-[var(--primary-light)] transition-colors">
               İş paneli →
             </a>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="space-y-4">
-
-            {/* Təklif gəlmiş sifarişlər */}
-            {offerOrders.length > 0 && (
-              <div>
-                <p className="text-[12px] font-bold text-[var(--navy)] mb-2 flex items-center justify-between">
-                  Təklif Gəldi
-                  <span className="text-[10px] font-bold text-[var(--primary)] bg-[var(--primary-bg)] px-2 py-0.5 rounded-full">
-                    {offerOrders.length}
-                  </span>
-                </p>
-                <div className="space-y-2">
-                  {offerOrders.map(order => (
-                    <OfferCard key={order.id} order={order} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Usta axtarılan sifarişlər */}
-            {searchingOrders.length > 0 && (
-              <div>
-                <p className="text-[12px] font-bold text-[var(--navy)] mb-2">
-                  Usta Axtarılır
-                </p>
-                <div className="space-y-2">
-                  {searchingOrders.map(order => (
-                    <SearchingCard
-                      key={order.id}
-                      order={order}
-                      onCancel={handleCancel}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Boş hal */}
-            {orders.length === 0 && (
-              <div className="bg-white border border-[var(--border)] rounded-2xl p-8 text-center">
-                <p className="text-3xl mb-3">📋</p>
-                <p className="text-[14px] font-bold text-[var(--navy)] mb-1">
-                  Aktiv sifariş yoxdur
-                </p>
-                <p className="text-[12px] text-[var(--gray-400)] mb-4">
-                  Yeni sifariş yaradın, ustalar təklif göndərsin
-                </p>
-                <Link
-                  href="/request/new"
-                  className="inline-flex items-center gap-2 bg-[var(--primary)] text-white text-[13px] font-bold px-5 py-2.5 rounded-xl hover:bg-[var(--primary-light)] transition-colors"
-                >
-                  + Yeni Sifariş
-                </Link>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            {/* Tracking */}
-            {activeOrders.length > 0 && (
-              <div>
-                <p className="text-[12px] font-bold text-[var(--navy)] mb-2 flex items-center gap-2">
-                  Aktiv · İzlə
-                  <span className="text-[10px] font-bold text-[#10B981] animate-pulse">
-                    ● Canlı
-                  </span>
-                </p>
-                <div className="space-y-2">
-                  {activeOrders.map(order => (
-                    <TrackingCard key={order.id} order={order} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Tarixçə */}
-            <Link
-              href="/dashboard/history"
-              className="flex items-center justify-between bg-[var(--gray-100)] rounded-2xl px-4 py-3.5 hover:bg-[var(--gray-200)] transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-lg">🔄</span>
-                <div>
-                  <p className="text-[13px] font-semibold text-[var(--text-2)]">Tarixçə</p>
-                  <p className="text-[11px] text-[var(--gray-400)]">Tamamlanmış sifarişlər</p>
-                </div>
-              </div>
-              <span className="text-[var(--gray-400)] group-hover:text-[var(--primary)] transition-colors">→</span>
+        {/* ── Boş hal ── */}
+        {orders.length === 0 && (
+          <div className="bg-white border border-[var(--border)] rounded-2xl p-10 text-center">
+            <p className="text-4xl mb-4">📋</p>
+            <p className="text-[15px] font-bold text-[var(--navy)] mb-2">Aktiv sifariş yoxdur</p>
+            <p className="text-[12px] text-[var(--gray-400)] mb-5">Yeni sifariş yaradın, ustalar təklif göndərsin</p>
+            <Link href="/request/new" className="inline-flex items-center gap-2 bg-[var(--primary)] text-white text-[13px] font-bold px-6 py-3 rounded-xl hover:bg-[var(--primary-light)] transition-colors">
+              + Yeni Sifariş
             </Link>
           </div>
-        </div>
+        )}
+
+        {/* ── 1. PRİORİTET: Təklif Gəldi ── */}
+        {offerOrders.length > 0 && (
+          <div className="mb-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-bold text-[var(--navy)] uppercase tracking-wider flex items-center gap-2">
+                🔔 Təklif Gəldi
+              </p>
+              <span className="text-[10px] font-bold text-[var(--primary)] bg-[var(--primary-bg)] px-2.5 py-0.5 rounded-full">
+                {offerOrders.length}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {offerOrders.map(order => (
+                <OfferCard key={order.id} order={order} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── 2. PRİORİTET: Aktiv Sifariş ── */}
+        {activeOrders.length > 0 && (
+          <div className="mb-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-bold text-[var(--navy)] uppercase tracking-wider flex items-center gap-2">
+                ✅ Aktiv Sifariş
+                <span className="text-[10px] font-bold text-[#10B981] normal-case tracking-normal animate-pulse">● Canlı</span>
+              </p>
+              <span className="text-[10px] font-bold text-[#10B981] bg-[#D1FAE5] px-2.5 py-0.5 rounded-full">
+                {activeOrders.length}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {activeOrders.map(order => (
+                <TrackingCard key={order.id} order={order} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── 3. PRİORİTET: Usta Axtarılır ── */}
+        {searchingOrders.length > 0 && (
+          <div className="mb-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-bold text-[var(--navy)] uppercase tracking-wider">
+                🔍 Usta Axtarılır
+              </p>
+              <span className="text-[10px] font-bold text-[var(--text-3)] bg-[var(--gray-100)] px-2.5 py-0.5 rounded-full">
+                {searchingOrders.length}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {searchingOrders.map(order => (
+                <SearchingCard key={order.id} order={order} onCancel={handleCancel} />
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
     </>
   );
