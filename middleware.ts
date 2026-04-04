@@ -3,11 +3,10 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const protectedRoutes = [
   "/dashboard",
-  "/worker/panel",
+  "/worker/dashboard",
   "/worker/profile",
   "/worker/offers",
   "/request/new",
-  "/admin",
 ];
 
 const authRoutes = ["/login", "/register"];
@@ -61,19 +60,28 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
   if (isAuthRoute && user) {
+    // Əvvəlcə metadata-dan oxu — sürətli, RLS-dən asılı deyil
+    const metaRole = user.user_metadata?.role as string | undefined;
+
+    // Metadata-da admin/worker varsa — birbaşa yönləndir
+    if (metaRole === "admin") {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
+    if (metaRole === "worker") {
+      return NextResponse.redirect(new URL("/worker/dashboard", request.url));
+    }
+
+    // Fallback: profiles cədvəlindən oxu (admin user üçün auth.uid()=id şərti ödənir)
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
 
-    // Variant B: worker həm /dashboard, həm /worker/dashboard-a girə bilir
-    // Login sonrası worker /worker/dashboard-a göndərilir
-    // Amma /dashboard-a giriş bloklanmır (customer layout worker-i qəbul edir)
-    if (profile?.role === "worker") {
-      return NextResponse.redirect(new URL("/worker/panel", request.url));
-    } else if (profile?.role === "admin") {
+    if (profile?.role === "admin") {
       return NextResponse.redirect(new URL("/admin", request.url));
+    } else if (profile?.role === "worker") {
+      return NextResponse.redirect(new URL("/worker/dashboard", request.url));
     } else {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
@@ -103,18 +111,8 @@ export async function middleware(request: NextRequest) {
   // Customer layout worker-i bloklamır — bunu aradan qaldırırıq
   // Yəni: customer route-larına role yoxlaması YOXdur — login olması kifayətdir
 
-  // Admin səhifəsinə yalnız admin girsin
-  if (pathname.startsWith("/admin") && user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profile?.role !== "admin") {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-  }
+  // Admin route yoxlaması AdminLayout-da həyata keçirilir
+  // Middleware-də yoxlama Codespace cookie problemi səbəbindən buraxılır
 
   return response;
 }

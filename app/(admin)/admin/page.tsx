@@ -27,7 +27,7 @@ export default async function AdminPage() {
       user_id, experience_range, price_min, price_max,
       available_districts, category_id,
       categories!worker_profiles_category_id_fkey(name_az, icon),
-      profiles!worker_profiles_user_id_fkey(full_name, phone, email, created_at)
+      profiles(full_name, phone, created_at)
     `)
     .eq("verified", false)
     .order("created_at", { ascending: false });
@@ -39,7 +39,7 @@ export default async function AdminPage() {
       user_id, rating, review_count, is_active, category_id,
       available_districts,
       categories!worker_profiles_category_id_fkey(name_az, icon),
-      profiles!worker_profiles_user_id_fkey(full_name, phone, email, created_at)
+      profiles(full_name, phone, created_at)
     `)
     .eq("verified", true)
     .order("rating", { ascending: false });
@@ -47,7 +47,7 @@ export default async function AdminPage() {
   // Müştərilər
   const { data: customerList } = await supabase
     .from("profiles")
-    .select("id, full_name, phone, email, created_at, is_verified")
+    .select("id, full_name, phone, created_at, is_verified")
     .eq("role", "customer")
     .order("created_at", { ascending: false });
 
@@ -57,7 +57,7 @@ export default async function AdminPage() {
     .select(`
       id, status, address, created_at,
       categories!job_requests_category_id_fkey(name_az, icon),
-      profiles!job_requests_customer_id_fkey(full_name)
+      profiles(full_name)
     `)
     .order("created_at", { ascending: false })
     .limit(50);

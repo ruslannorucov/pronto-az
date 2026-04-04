@@ -1,0 +1,350 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+
+const AZ_MONTHS_SHORT = ["Yan","Fev","Mar","Apr","May","İyn","İyl","Avq","Sen","Okt","Noy","Dek"];
+
+function formatTime(job: { time_type: string; exact_datetime: string | null; urgency: string | null; preferred_time: string | null; }): string {
+  if (job.time_type === "exact" && job.exact_datetime) {
+    const d = new Date(job.exact_datetime);
+    return `${d.getDate()} ${AZ_MONTHS_SHORT[d.getMonth()]}, ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  }
+  const urgMap: Record<string,string> = { today: "Bu gün", this_week: "Bu həftə", flexible: "Çevik" };
+  const prefMap: Record<string,string> = { "09:00–12:00": "Səhər", "12:00–18:00": "Gündüz", "18:00–21:00": "Axşam" };
+  const u = urgMap[job.urgency ?? ""] ?? "Çevik";
+  const p = prefMap[job.preferred_time ?? ""] ?? "";
+  return p ? `${u} · ${p}` : u;
+}
+
+function getInitials(name: string): string {
+  return name.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase();
+}
+
+function Stars({ rating }: { rating: number }) {
+  return (
+    <span>
+      {Array.from({length:5},(_,i) => (
+        <span key={i} style={{ color: i < Math.round(rating) ? "#F59E0B" : "#E4EAFB", fontSize: 11 }}>★</span>
+      ))}
+    </span>
+  );
+}
+
+type SortType = "rating" | "price" | "time";
+
+export default function RequestDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const jobId = params?.id as string;
+
+  const [loading, setLoading] = useState(true);
+  const [accepting, setAccepting] = useState<string | null>(null);
+  const [job, setJob] = useState<any>(null);
+  const [offers, setOffers] = useState<any[]>([]);
+  const [sort, setSort] = useState<SortType>("rating");
+  const [toast, setToast] = useState<{ msg: string; type: "ok"|"err" } | null>(null);
+
+  const supabase = createClient();
+
+  useEffect(() => {
+    if (!jobId) return;
+    load();
+  }, [jobId]);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/login"); return; }
+
+      // Job request
+      const { data: jobRaw } = await supabase
+        .from("job_requests")
+        .select("id, description, address, status, time_type, exact_datetime, urgency, preferred_time, category_id, customer_id")
+        .eq("id", jobId)
+        .single();
+
+      if (!jobRaw || jobRaw.customer_id !== user.id) { router.push("/dashboard"); return; }
+
+      // Category
+      const { data: catRaw } = await supabase
+        .from("categories").select("name_az, icon").eq("id", jobRaw.category_id).single();
+
+      setJob({ ...jobRaw, category: catRaw });
+
+      // Offers
+      const { data: offersRaw } = await supabase
+        .from("offers")
+        .select("id, price, note, eta_hours, created_at, worker_id, status")
+        .eq("job_id", jobId)
+        .eq("status", "pending");
+
+      if (!offersRaw || offersRaw.length === 0) { setOffers([]); setLoading(false); return; }
+
+      // Worker profiles
+      const workerIds = offersRaw.map((o: any) => o.worker_id);
+      const { data: workersRaw } = await supabase
+        .from("worker_profiles")
+        .select("user_id, rating, review_count, experience_range, price_min, price_max")
+        .in("user_id", workerIds);
+
+      // Profiles
+      const { data: profilesRaw } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", workerIds);
+
+      const workerMap: Record<string,any> = {};
+      (workersRaw ?? []).forEach((w: any) => { workerMap[w.user_id] = w; });
+      const profileMap: Record<string,string> = {};
+      (profilesRaw ?? []).forEach((p: any) => { profileMap[p.id] = p.full_name; });
+
+      const merged = offersRaw.map((o: any) => ({
+        ...o,
+        worker: workerMap[o.worker_id] ?? {},
+        workerName: profileMap[o.worker_id] ?? "Usta",
+      }));
+
+      setOffers(merged);
+    } catch(e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAccept = async (offerId: string) => {
+    if (!confirm("Bu ustanı seçmək istədiyinizə əminsiniz?")) return;
+    setAccepting(offerId);
+    try {
+      // 1. Seçilmiş offer — accepted
+      const { error } = await supabase
+        .from("offers").update({ status: "accepted" }).eq("id", offerId);
+      if (error) throw error;
+
+      // 2. Qalanları rejected
+      await supabase
+        .from("offers")
+        .update({ status: "rejected" })
+        .eq("job_id", jobId)
+        .neq("id", offerId);
+
+      // 3. Job status — in_progress
+      await supabase
+        .from("job_requests")
+        .update({ status: "in_progress" })
+        .eq("id", jobId);
+
+      showToast("Usta seçildi! Sifariş aktivdir.", "ok");
+      setTimeout(() => router.push("/dashboard"), 1500);
+    } catch(e) {
+      console.error(e);
+      showToast("Xəta baş verdi.", "err");
+    } finally {
+      setAccepting(null);
+    }
+  };
+
+  const showToast = (msg: string, type: "ok"|"err") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const sortedOffers = [...offers].sort((a, b) => {
+    if (sort === "rating") return (b.worker?.rating ?? 0) - (a.worker?.rating ?? 0);
+    if (sort === "price")  return a.price - b.price;
+    if (sort === "time")   return (a.eta_hours ?? 99) - (b.eta_hours ?? 99);
+    return 0;
+  });
+
+  const expLabels: Record<string,string> = { lt1: "<1 il", "1-4": "1–4 il", "5-9": "5–9 il", "10plus": "10+ il" };
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#F8FAFF", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "sans-serif" }}>
+        <p style={{ fontSize: 13, color: "#94A3C0" }}>Yüklənir...</p>
+      </div>
+    );
+  }
+
+  if (!job) return null;
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#F8FAFF", fontFamily: "-apple-system, sans-serif" }}>
+      <style>{`
+        @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+        .offer-card { animation: fadeIn 0.3s ease; }
+      `}</style>
+
+      {/* Header */}
+      <div style={{ background: "linear-gradient(135deg,#0D1F3C,#162F6A)", padding: "0 0 20px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 16px 0" }}>
+          <Link href="/dashboard" style={{
+            width: 34, height: 34, borderRadius: "50%",
+            background: "rgba(255,255,255,0.12)", display: "flex",
+            alignItems: "center", justifyContent: "center",
+            color: "#fff", textDecoration: "none", fontSize: 16, flexShrink: 0,
+          }}>←</Link>
+          <div>
+            <p style={{ fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "'Playfair Display', serif" }}>
+              {job.category?.icon} {job.category?.name_az}
+            </p>
+            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>
+              {offers.length} təklif · Müqayisə et və seç
+            </p>
+          </div>
+        </div>
+
+        {/* Job summary */}
+        <div style={{ margin: "14px 16px 0", background: "rgba(255,255,255,0.08)", borderRadius: 12, padding: "11px 13px" }}>
+          <div style={{ display: "flex", gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Ünvan</p>
+              <p style={{ fontSize: 12, color: "#fff", fontWeight: 500 }}>{job.address ?? "—"}</p>
+            </div>
+            <div>
+              <p style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}>Vaxt</p>
+              <p style={{ fontSize: 12, color: "#fff", fontWeight: 500 }}>{formatTime(job)}</p>
+            </div>
+          </div>
+          {job.description && (
+            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 8, lineHeight: 1.5 }}>
+              "{job.description}"
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Sort chips */}
+      <div style={{ display: "flex", gap: 6, padding: "12px 16px", background: "#fff", borderBottom: "1px solid #E4EAFB" }}>
+        {([
+          { key: "rating", label: "⭐ Reytinq" },
+          { key: "price",  label: "💰 Qiymət" },
+          { key: "time",   label: "⚡ Ən tez" },
+        ] as const).map(s => (
+          <button key={s.key} onClick={() => setSort(s.key)} style={{
+            padding: "5px 12px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+            cursor: "pointer", border: "1px solid",
+            borderColor: sort === s.key ? "#1B4FD8" : "#E4EAFB",
+            background: sort === s.key ? "#EFF4FF" : "#fff",
+            color: sort === s.key ? "#1B4FD8" : "#94A3C0",
+            transition: "all 0.15s",
+          }}>{s.label}</button>
+        ))}
+      </div>
+
+      {/* Offers */}
+      <div style={{ padding: "12px 16px", maxWidth: 480, margin: "0 auto" }}>
+        {offers.length === 0 ? (
+          <div style={{ background: "#fff", borderRadius: 16, padding: "32px 16px", textAlign: "center", border: "0.5px dashed #E4EAFB" }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "#0D1F3C", marginBottom: 6 }}>Hələ təklif gəlməyib</p>
+            <p style={{ fontSize: 11, color: "#94A3C0" }}>Ustalar sifarişinizi görüb təklif göndərəcək</p>
+          </div>
+        ) : sortedOffers.map((offer, idx) => {
+          const isBest = idx === 0 && sort === "rating";
+          const initials = getInitials(offer.workerName);
+          const colors = ["linear-gradient(135deg,#1B4FD8,#2563EB)","linear-gradient(135deg,#0A7A4F,#10B981)","linear-gradient(135deg,#6D28D9,#7C3AED)","linear-gradient(135deg,#B45309,#D97706)","linear-gradient(135deg,#C2410C,#EA580C)"];
+          const avColor = colors[offer.workerName.charCodeAt(0) % colors.length];
+
+          return (
+            <div key={offer.id} className="offer-card" style={{
+              background: "#fff",
+              border: isBest ? "1.5px solid #1B4FD8" : "1px solid #E4EAFB",
+              borderRadius: 16, marginBottom: 12, overflow: "hidden",
+              boxShadow: isBest ? "0 4px 20px rgba(27,79,216,0.12)" : "0 2px 8px rgba(13,31,60,0.04)",
+            }}>
+              {isBest && (
+                <div style={{ background: "#EFF4FF", padding: "6px 14px", borderBottom: "1px solid #BFCFFE" }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#1B4FD8" }}>⭐ Ən yaxşı seçim</span>
+                </div>
+              )}
+
+              <div style={{ padding: "14px" }}>
+                {/* Worker row */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
+                    background: avColor,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 14, fontWeight: 700, color: "#fff", fontFamily: "'Playfair Display', serif",
+                  }}>{initials}</div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: "#0D1F3C" }}>{offer.workerName}</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 1 }}>
+                      <Stars rating={offer.worker?.rating ?? 0} />
+                      <span style={{ fontSize: 11, color: "#94A3C0" }}>
+                        {offer.worker?.rating ? offer.worker.rating.toFixed(1) : "—"} · {offer.worker?.review_count ?? 0} rəy
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Details grid */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+                  {[
+                    { label: "Qiymət", value: `${offer.price} ₼`, highlight: true },
+                    { label: "Vaxt", value: offer.eta_hours ? `${offer.eta_hours} saat` : "Çevik" },
+                    { label: "Təcrübə", value: expLabels[offer.worker?.experience_range ?? ""] ?? "—" },
+                  ].map(d => (
+                    <div key={d.label} style={{ background: "#F8FAFF", borderRadius: 9, padding: "8px 10px" }}>
+                      <p style={{ fontSize: 9, color: "#94A3C0", marginBottom: 2 }}>{d.label}</p>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: d.highlight ? "#1B4FD8" : "#0D1F3C", fontFamily: d.highlight ? "'Playfair Display', serif" : "inherit" }}>
+                        {d.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Note */}
+                {offer.note && (
+                  <div style={{ background: "#F8FAFF", borderRadius: 9, padding: "9px 11px", marginBottom: 12 }}>
+                    <p style={{ fontSize: 11, color: "#4A5878", lineHeight: 1.5 }}>"{offer.note}"</p>
+                  </div>
+                )}
+
+                {/* Accept button */}
+                <button
+                  onClick={() => handleAccept(offer.id)}
+                  disabled={!!accepting}
+                  style={{
+                    width: "100%", padding: "12px", borderRadius: 12,
+                    border: "none", fontSize: 13, fontWeight: 700, cursor: accepting ? "not-allowed" : "pointer",
+                    color: "#fff", opacity: accepting ? 0.7 : 1,
+                    background: isBest
+                      ? "linear-gradient(135deg,#1B4FD8,#2563EB)"
+                      : "linear-gradient(135deg,#0A7A4F,#10B981)",
+                    boxShadow: isBest
+                      ? "0 4px 14px rgba(27,79,216,0.3)"
+                      : "0 4px 14px rgba(10,122,79,0.25)",
+                    transition: "all 0.15s",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {accepting === offer.id ? "Seçilir..." : "✓ Bu ustanı seç"}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+          background: toast.type === "ok" ? "linear-gradient(135deg,#D1FAE5,#A7F3D0)" : "#FEE2E2",
+          border: `1px solid ${toast.type === "ok" ? "#6EE7B7" : "#FECACA"}`,
+          color: toast.type === "ok" ? "#065F46" : "#DC2626",
+          padding: "10px 20px", borderRadius: 10, fontSize: 12, fontWeight: 600,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 9999, whiteSpace: "nowrap",
+          fontFamily: "inherit",
+        }}>
+          {toast.msg}
+        </div>
+      )}
+    </div>
+  );
+}

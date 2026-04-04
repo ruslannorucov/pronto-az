@@ -33,75 +33,93 @@ function formatId(id: string): string {
   return "#PRN-" + id.slice(0, 4).toUpperCase();
 }
 
-// ── State 1: Usta axtarılır ──
+// ── State 1: Usta axtarılır (accordion) ──
 function SearchingCard({ order, onCancel }: { order: Order; onCancel: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="bg-white border border-[var(--border)] rounded-2xl overflow-hidden">
-      {/* Animasiya hissəsi */}
+    <div
+      className="bg-white rounded-2xl overflow-hidden transition-all"
+      style={{ border: open ? "1.5px solid #1B4FD8" : "1px solid var(--border)" }}
+    >
+      {/* Header — həmişə görünür */}
       <div
-        className="relative flex flex-col items-center gap-3 py-6 px-4 overflow-hidden"
-        style={{ background: "linear-gradient(135deg, #0D1F3C, #162F6A)" }}
+        className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none"
+        onClick={() => setOpen(o => !o)}
       >
-        {/* Grid overlay */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage: "linear-gradient(rgba(27,79,216,0.08) 1px,transparent 1px),linear-gradient(90deg,rgba(27,79,216,0.08) 1px,transparent 1px)",
-            backgroundSize: "24px 24px",
-          }}
-        />
-        {/* Pulse ring */}
-        <div className="relative z-10 flex items-center justify-center w-16 h-16">
-          <div className="absolute inset-0 rounded-full border-2 border-[rgba(147,180,255,0.3)] animate-[pulse-out_2s_ease-out_infinite]" />
-          <div className="absolute inset-[-8px] rounded-full border border-[rgba(147,180,255,0.15)] animate-[pulse-out_2s_ease-out_0.5s_infinite]" />
-          <div className="w-12 h-12 rounded-full bg-[rgba(27,79,216,0.4)] flex items-center justify-center text-2xl z-10">
+        {/* Pulse ikon */}
+        <div className="relative w-9 h-9 flex items-center justify-center flex-shrink-0">
+          <div className="absolute inset-0 rounded-full border-[1.5px] border-[rgba(27,79,216,0.3)]"
+            style={{ animation: "pulse-out 2s ease-out infinite" }} />
+          <div className="absolute rounded-full border border-[rgba(27,79,216,0.15)]"
+            style={{ inset: "-5px", animation: "pulse-out 2s ease-out 0.5s infinite" }} />
+          <div className="w-7 h-7 rounded-full bg-[#1B2D5A] flex items-center justify-center text-sm z-10">
             {order.categories?.icon ?? "🔧"}
           </div>
         </div>
-        {/* Bouncing dots */}
-        <div className="flex gap-1.5 z-10">
-          {[0, 1, 2].map(i => (
-            <div
-              key={i}
-              className="w-2 h-2 rounded-full bg-[#93B4FF]"
-              style={{ animation: `bounce-dot 1.2s ease-in-out ${i * 0.2}s infinite` }}
-            />
-          ))}
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-[13px] font-bold text-[var(--navy)] truncate">
+              {order.categories?.name_az ?? "Xidmət"}
+            </p>
+            <span className="text-[10px] font-semibold text-[#1B4FD8] bg-[#EFF4FF] px-2 py-0.5 rounded-full flex-shrink-0">
+              {formatId(order.id)}
+            </span>
+          </div>
+          <p className="text-[11px] text-[var(--gray-400)] mt-0.5 truncate">
+            📍 {order.address ?? "Ünvan yoxdur"} · {formatTime(order)}
+          </p>
         </div>
-        <p className="text-[12px] text-white/70 z-10 text-center">
-          Ustalar sifarişinizi görür...
-        </p>
+
+        {/* Dots + chevron */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex gap-[3px] items-center">
+            {[0,1,2].map(i => (
+              <div key={i} className="w-[5px] h-[5px] rounded-full bg-[#1B4FD8]"
+                style={{ animation: `bounce-dot 1.2s ease-in-out ${i*0.2}s infinite` }} />
+            ))}
+          </div>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+            style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
+            <path d="M3 5l4 4 4-4" stroke="#94A3C0" strokeWidth="1.4" strokeLinecap="round"/>
+          </svg>
+        </div>
       </div>
 
-      {/* Məlumat hissəsi */}
-      <div className="px-4 py-3">
-        <p className="text-[13px] font-bold text-[var(--navy)] mb-0.5">
-          {order.categories?.icon} {order.categories?.name_az} · {formatId(order.id)}
-        </p>
-        <p className="text-[11px] text-[var(--gray-400)] mb-3">
-          📍 {order.address ?? "Ünvan yoxdur"} · {formatTime(order)}
-        </p>
-
-        {/* Progress bar */}
-        <div className="h-1 bg-[var(--gray-100)] rounded-full overflow-hidden mb-2">
-          <div
-            className="h-full rounded-full"
-            style={{
-              background: "linear-gradient(90deg, #1B4FD8, #60A5FA)",
-              animation: "progress-pulse 2s ease-in-out infinite",
-            }}
-          />
+      {/* Body — açılanda görünür */}
+      <div style={{ maxHeight: open ? "300px" : "0", overflow: "hidden", transition: "max-height 0.3s ease" }}>
+        <div className="px-4 pb-4 border-t border-[var(--gray-200)]">
+          {/* Progress bar */}
+          <div className="h-[3px] bg-[var(--gray-100)] rounded-full overflow-hidden mt-3 mb-2">
+            <div className="h-full rounded-full"
+              style={{ background: "linear-gradient(90deg, #1B4FD8, #60A5FA)", animation: "progress-pulse 2s ease-in-out infinite" }} />
+          </div>
+          <p className="text-[11px] text-[var(--gray-400)] text-center mb-3">
+            Adətən <span className="font-semibold text-[var(--navy)]">15–45 dəq</span> ərzində təklif gəlir
+          </p>
+          {/* Meta pills */}
+          <div className="flex gap-2 mb-3">
+            {[
+              { label: "Ünvan", value: order.address ?? "—" },
+              { label: "Vaxt", value: formatTime(order) },
+              { label: "Status", value: "Axtarılır", blue: true },
+            ].map(m => (
+              <div key={m.label} className="flex-1 bg-[var(--gray-50)] rounded-xl px-2 py-2">
+                <p className="text-[9px] text-[var(--gray-400)]">{m.label}</p>
+                <p className={`text-[11px] font-semibold truncate mt-0.5 ${m.blue ? "text-[#1B4FD8]" : "text-[var(--navy)]"}`}>
+                  {m.value}
+                </p>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); onCancel(order.id); }}
+            className="w-full py-2.5 rounded-xl border border-[var(--border)] text-[12px] font-semibold text-[var(--gray-400)] hover:border-red-300 hover:text-red-500 hover:bg-red-50 transition-all"
+          >
+            Sifarişi ləğv et
+          </button>
         </div>
-        <p className="text-[11px] text-[var(--gray-400)] text-center mb-3">
-          Adətən <span className="font-semibold text-[var(--navy)]">15–45 dəq</span> ərzində təklif gəlir
-        </p>
-
-        <button
-          onClick={() => onCancel(order.id)}
-          className="w-full py-2 rounded-xl border border-[var(--border)] text-[12px] font-semibold text-[var(--gray-400)] hover:border-red-300 hover:text-red-500 hover:bg-red-50 transition-all"
-        >
-          Sifarişi ləğv et
-        </button>
       </div>
     </div>
   );
@@ -260,16 +278,21 @@ export default function DashboardClient() {
     setProfile(profile);
     setIsVerified(profile?.is_verified ?? false);
 
+    // Join olmadan ayrı query — browser client üçün daha etibarlı
     const { data: activeOrders } = await supabase
       .from("job_requests")
-      .select(`
-        id, description, address, status,
-        time_type, exact_datetime, urgency, created_at,
-        categories ( name_az, icon )
-      `)
+      .select("id, description, address, status, time_type, exact_datetime, urgency, created_at, category_id")
       .eq("customer_id", user.id)
       .in("status", ["open", "in_progress"])
       .order("created_at", { ascending: false });
+
+    // Category ID-ləri topla və ayrıca çək
+    const catIds = [...new Set((activeOrders ?? []).map((o: any) => o.category_id).filter(Boolean))];
+    const { data: catsData } = catIds.length > 0
+      ? await supabase.from("categories").select("id, name_az, icon").in("id", catIds)
+      : { data: [] };
+    const catMap: Record<string, any> = {};
+    (catsData ?? []).forEach((c: any) => { catMap[c.id] = c; });
 
     const ordersWithOffers = await Promise.all(
       (activeOrders ?? []).map(async (order: any) => {
@@ -279,13 +302,9 @@ export default function DashboardClient() {
           .eq("job_id", order.id)
           .eq("status", "pending");
 
-        const categoryData = Array.isArray(order.categories)
-          ? order.categories[0]
-          : order.categories;
-
         return {
           ...order,
-          categories: categoryData || null,
+          categories: catMap[order.category_id] ?? null,
           offerCount: count ?? 0,
         } as Order;
       })
@@ -309,10 +328,24 @@ export default function DashboardClient() {
     if (!confirm("Sifarişi ləğv etmək istədiyinizə əminsiniz?")) return;
     setCancelling(orderId);
     const supabase = createClient();
+
+    // Ləğv mərhələsini müəyyən et
+    const order = orders.find(o => o.id === orderId);
+    const cancelReason = order
+      ? order.offerCount > 0
+        ? "offer_received"   // Təklif var idi, müştəri ləğv etdi
+        : "no_offers"        // Təklif gəlmədi, müştəri ləğv etdi
+      : "customer";
+
     await supabase
       .from("job_requests")
-      .update({ status: "cancelled" })
+      .update({
+        status: "cancelled",
+        cancelled_at: new Date().toISOString(),
+        cancel_reason: cancelReason,
+      })
       .eq("id", orderId);
+
     await load();
     setCancelling(null);
   };
@@ -400,7 +433,7 @@ export default function DashboardClient() {
               Usta panelinizə keçmək istəyirsiniz?
             </p>
             <a
-              href="/worker/panel"
+              href="/worker/dashboard"
               className="bg-[var(--primary)] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shrink-0 hover:bg-[var(--primary-light)] transition-colors"
             >
               İş paneli →

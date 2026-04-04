@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -21,7 +21,7 @@ interface PendingWorker {
   available_districts: string[] | null;
   category_id: string | null;
   categories: { name_az: string; icon: string } | null;
-  profiles: { full_name: string; phone: string; email: string; created_at: string } | null;
+  profiles: { full_name: string; phone: string; created_at: string } | null;
 }
 
 interface ActiveWorker {
@@ -32,14 +32,13 @@ interface ActiveWorker {
   category_id: string | null;
   available_districts: string[] | null;
   categories: { name_az: string; icon: string } | null;
-  profiles: { full_name: string; phone: string; email: string; created_at: string } | null;
+  profiles: { full_name: string; phone: string; created_at: string } | null;
 }
 
 interface Customer {
   id: string;
   full_name: string;
   phone: string | null;
-  email: string | null;
   created_at: string;
   is_verified: boolean;
 }
@@ -51,16 +50,6 @@ interface Order {
   created_at: string;
   categories: { name_az: string; icon: string } | null;
   profiles: { full_name: string } | null;
-}
-
-interface Props {
-  stats: Stats;
-  pendingWorkerList: any[];
-  activeWorkerList: any[];
-  customerList: Customer[];
-  orderList: any[];
-  recentActivity: any[];
-  weekOrders: any[];
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -201,13 +190,8 @@ function Btn({ children, variant = "ghost", onClick, disabled }: {
 
 // ─── Main ──────────────────────────────────────────────────────────────────────
 
-export default function AdminClient({
-  stats, pendingWorkerList, activeWorkerList,
-  customerList, orderList, recentActivity, weekOrders,
-}: Props) {
+export default function AdminClient() {
   const supabase = createClient();
-  const router = useRouter();
-
   type Page = "dashboard" | "workers" | "customers" | "orders";
   type WorkerTab = "pending" | "active" | "blocked";
   type OrderFilter = "all" | "open" | "in_progress" | "done" | "cancelled";
@@ -217,13 +201,124 @@ export default function AdminClient({
   const [orderFilter, setOrderFilter] = useState<OrderFilter>("all");
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
-  const [localPending, setLocalPending] = useState<any[]>(pendingWorkerList);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  // ── Data state ────────────────────────────────────────────────────────────────
+  const [stats, setStats] = useState({ pendingWorkers: 0, activeWorkers: 0, todayOrders: 0, activeCustomers: 0 });
+  const [localPending, setLocalPending] = useState<any[]>([]);
+  const [activeWorkerList, setActiveWorkerList] = useState<any[]>([]);
+  const [customerList, setCustomerList] = useState<any[]>([]);
+  const [orderList, setOrderList] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [weekOrders, setWeekOrders] = useState<any[]>([]);
+
   const [sbOpen, setSbOpen] = useState(false);
+  const [selectedWorker, setSelectedWorker] = useState<any | null>(null);
 
   const showToast = (msg: string, type: "ok" | "err" = "ok") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
   };
+
+  // ── Fetch all data ───────────────────────────────────────────────────────────
+  const fetchData = useCallback(async () => {
+    setDataLoading(true);
+    try {
+      const today = new Date(); today.setHours(0,0,0,0);
+
+      // 1. worker_profiles - join olmadan
+      const { data: wpData } = await supabase
+        .from("worker_profiles")
+        .select("user_id, verified, is_active, experience_range, price_min, price_max, available_districts, category_id, rating, review_count, created_at");
+
+      const allWorkers = wpData ?? [];
+      const pendingIds = allWorkers.filter(w => !w.verified).map(w => w.user_id);
+      const activeIds  = allWorkers.filter(w =>  w.verified).map(w => w.user_id);
+
+      // 2. profiles - worker_profiles ilə eyni user_id-lər üçün
+      const allIds = allWorkers.map(w => w.user_id);
+      const { data: profilesData } = allIds.length > 0
+        ? await supabase.from("profiles").select("id, full_name, phone, created_at, role, is_verified").in("id", allIds)
+        : { data: [] };
+
+      const profileMap: Record<string, any> = {};
+      (profilesData ?? []).forEach(p => { profileMap[p.id] = p; });
+
+      // 3. categories
+      const catIds = [...new Set(allWorkers.map(w => w.category_id).filter(Boolean))];
+      const { data: catsData } = catIds.length > 0
+        ? await supabase.from("categories").select("id, name_az, icon").in("id", catIds)
+        : { data: [] };
+
+      const catMap: Record<string, any> = {};
+      (catsData ?? []).forEach(c => { catMap[c.id] = c; });
+
+      // Merge
+      const merged = allWorkers.map(w => ({
+        ...w,
+        profile: profileMap[w.user_id] ?? null,
+        category: catMap[w.category_id ?? ""] ?? null,
+      }));
+
+      const pending = merged.filter(w => !w.verified);
+      const active  = merged.filter(w =>  w.verified);
+
+      setLocalPending(pending);
+      setActiveWorkerList(active);
+
+      // 4. Customers
+      const { data: custs } = await supabase
+        .from("profiles").select("id, full_name, phone, created_at, is_verified").eq("role", "customer").order("created_at", { ascending: false });
+      setCustomerList(custs ?? []);
+
+      // 5. Orders
+      const { data: ords } = await supabase
+        .from("job_requests")
+        .select("id, status, address, created_at, category_id")
+        .order("created_at", { ascending: false }).limit(50);
+
+      const ordCatIds = [...new Set((ords ?? []).map((o:any) => o.category_id).filter(Boolean))];
+      const { data: ordCats } = ordCatIds.length > 0
+        ? await supabase.from("categories").select("id, name_az, icon").in("id", ordCatIds)
+        : { data: [] };
+      const ordCatMap: Record<string, any> = {};
+      (ordCats ?? []).forEach(c => { ordCatMap[c.id] = c; });
+
+      const ordersWithCat = (ords ?? []).map((o: any) => ({
+        ...o,
+        category: ordCatMap[o.category_id] ?? null,
+      }));
+      setOrderList(ordersWithCat);
+      setRecentActivity(ordersWithCat.slice(0, 5));
+
+      // 6. Week orders
+      const { data: wk } = await supabase
+        .from("job_requests").select("created_at")
+        .gte("created_at", new Date(Date.now() - 7*24*60*60*1000).toISOString());
+      setWeekOrders(wk ?? []);
+
+      // 7. Stats
+      const { count: todayCount } = await supabase
+        .from("job_requests").select("*", { count: "exact", head: true })
+        .gte("created_at", today.toISOString());
+      const { count: custCount } = await supabase
+        .from("profiles").select("*", { count: "exact", head: true }).eq("role", "customer");
+
+      setStats({
+        pendingWorkers: pending.length,
+        activeWorkers:  active.filter(w => w.is_active).length,
+        todayOrders:    todayCount ?? 0,
+        activeCustomers: custCount ?? 0,
+      });
+
+    } catch(e) {
+      console.error("fetchData error:", e);
+    } finally {
+      setDataLoading(false);
+    }
+  }, [supabase]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   // ── Worker approve / reject ──────────────────────────────────────────────────
   const handleWorkerAction = useCallback(async (
@@ -248,13 +343,13 @@ export default function AdminClient({
         showToast("Usta rədd edildi", "err");
       }
       setLocalPending(prev => prev.filter(w => w.user_id !== userId));
-      router.refresh();
+      await fetchData();
     } catch {
       showToast("Xəta baş verdi. Yenidən cəhd edin.", "err");
     } finally {
       setLoadingId(null);
     }
-  }, [supabase, router]);
+  }, [supabase, fetchData]);
 
   // ── Worker block / unblock ───────────────────────────────────────────────────
   const handleWorkerToggle = useCallback(async (userId: string, block: boolean) => {
@@ -266,13 +361,13 @@ export default function AdminClient({
         .eq("user_id", userId);
       if (error) throw error;
       showToast(block ? "Usta bloklandı" : "Usta aktivləşdirildi", block ? "err" : "ok");
-      router.refresh();
+      await fetchData();
     } catch {
       showToast("Xəta baş verdi.", "err");
     } finally {
       setLoadingId(null);
     }
-  }, [supabase, router]);
+  }, [supabase, fetchData]);
 
   // ── Customer block / unblock ─────────────────────────────────────────────────
   const handleCustomerToggle = useCallback(async (id: string, block: boolean) => {
@@ -281,11 +376,11 @@ export default function AdminClient({
       // profiles cədvəlində is_active yoxdur — role-u dəyişirik (blocked)
       // Post-MVP: ayrı blocked boolean əlavə ediləcək
       showToast(block ? "Müştəri bloklandı" : "Müştəri aktivləşdirildi", block ? "err" : "ok");
-      router.refresh();
+      await fetchData();
     } finally {
       setLoadingId(null);
     }
-  }, [supabase, router]);
+  }, [supabase, fetchData]);
 
   const weekData = buildWeekData(weekOrders);
   const blockedWorkers = activeWorkerList.filter((w: any) => !w.is_active);
@@ -388,6 +483,14 @@ export default function AdminClient({
   };
 
   // ─── RENDER ───────────────────────────────────────────────────────────────────
+
+  if (dataLoading) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F8FAFF", fontFamily: "'DM Sans', sans-serif" }}>
+        <div style={{ fontSize: 13, color: "#94A3C0" }}>Yüklənir...</div>
+      </div>
+    );
+  }
 
   return (
     <div style={S.shell}>
@@ -513,7 +616,41 @@ export default function AdminClient({
             {icons.bell}
             <div style={{ position: "absolute", top: 5, right: 5, width: 5, height: 5, borderRadius: "50%", background: "#E8521A", border: "1px solid #fff" }} />
           </div>
-          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#1B4FD8,#2563EB)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 600, color: "#fff", cursor: "pointer", marginLeft: 4 }}>
+          {/* Ana səhifə */}
+          <Link href="/" style={{
+            width: 28, height: 28, borderRadius: 7,
+            background: "#F8FAFF", border: "0.5px solid #E4EAFB",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", textDecoration: "none", marginLeft: 4,
+          }} title="Ana səhifə">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#4A5878" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M1 6.5L8 1l7 5.5V15a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6.5z"/>
+              <path d="M6 16V9h4v7"/>
+            </svg>
+          </Link>
+          {/* Çıxış */}
+          <button
+            onClick={async () => {
+              const { createClient } = await import("@/lib/supabase/client");
+              const sb = createClient();
+              await sb.auth.signOut();
+              window.location.href = "/login";
+            }}
+            style={{
+              width: 28, height: 28, borderRadius: 7,
+              background: "#FEE2E2", border: "0.5px solid #FECACA",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", marginLeft: 4,
+            }}
+            title="Çıxış"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#DC2626" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h4"/>
+              <path d="M11 11l4-4-4-4"/>
+              <path d="M15 7H6"/>
+            </svg>
+          </button>
+          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#1B4FD8,#2563EB)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 600, color: "#fff", marginLeft: 4 }}>
             A
           </div>
         </div>
@@ -568,8 +705,8 @@ export default function AdminClient({
                       Gözləyən usta yoxdur ✓
                     </div>
                   ) : localPending.map((w: any) => {
-                    const profile = Array.isArray(w.profiles) ? w.profiles[0] : w.profiles;
-                    const cat = Array.isArray(w.categories) ? w.categories[0] : w.categories;
+                    const profile = w.profile;
+                    const cat = w.category;
                     const name = profile?.full_name ?? "—";
                     const hasDoc = false; // post-MVP: storage yoxlaması
                     return (
@@ -578,7 +715,7 @@ export default function AdminClient({
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 12, fontWeight: 500, color: "#0D1F3C" }}>{name}</div>
                           <div style={{ fontSize: 10, color: "#94A3C0", marginTop: 1 }}>
-                            {profile?.phone ?? "—"} · {timeAgo(profile?.created_at ?? "")}
+                            {profile?.phone ?? "—"} · {profile?.created_at ? timeAgo(profile.created_at) : '—'}
                           </div>
                           <div style={{ display: "flex", gap: 3, marginTop: 4, flexWrap: "wrap" }}>
                             {cat && <Tag variant="cat">{cat.icon} {cat.name_az}</Tag>}
@@ -592,13 +729,13 @@ export default function AdminClient({
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                          <Btn variant="ghost" onClick={() => {}}>Bax</Btn>
+                          <Btn variant="ghost" onClick={() => setSelectedWorker(w)}>Bax</Btn>
                           <Btn
                             variant="green"
                             disabled={loadingId === w.user_id}
                             onClick={() => handleWorkerAction(w.user_id, "approve")}
                           >
-                            {loadingId === w.user_id ? "..." : "✓"}
+                            {loadingId === w.user_id ? "Gözlə..." : "Təsdiqlə"}
                           </Btn>
                           <Btn
                             variant="red"
@@ -623,7 +760,7 @@ export default function AdminClient({
                     {recentActivity.length === 0 ? (
                       <div style={{ padding: "16px 14px", fontSize: 11, color: "#94A3C0" }}>Fəaliyyət yoxdur</div>
                     ) : recentActivity.map((a: any, i: number) => {
-                      const cat = Array.isArray(a.categories) ? a.categories[0] : a.categories;
+                      const cat = a.category;
                       const dotColors: Record<string, string> = { open: "#1B4FD8", in_progress: "#F59E0B", done: "#10B981", cancelled: "#DC2626" };
                       return (
                         <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 14px", borderBottom: i < recentActivity.length - 1 ? "0.5px solid #E4EAFB" : "none" }}>
@@ -679,14 +816,14 @@ export default function AdminClient({
                     </thead>
                     <tbody>
                       {orderList.slice(0, 5).map((o: any) => {
-                        const cat = Array.isArray(o.categories) ? o.categories[0] : o.categories;
-                        const cust = Array.isArray(o.profiles) ? o.profiles[0] : o.profiles;
+                        const cat = o.category;
+                        const cust = o.profile ?? null;
                         return (
                           <tr key={o.id}>
                             <td style={{ ...TD, fontFamily: "'Playfair Display', serif", fontWeight: 700, color: "#1B4FD8" }}>{formatId(o.id)}</td>
                             <td style={TD}>{cat?.icon} {cat?.name_az ?? "—"}</td>
                             <td style={{ ...TD, color: "#94A3C0", fontSize: 10 }}>{o.address ?? "—"}</td>
-                            <td style={{ ...TD, color: "#94A3C0", fontSize: 10 }}>{cust?.full_name?.split(" ")[0] ?? "—"}</td>
+                            <td style={{ ...TD, color: "#94A3C0", fontSize: 10 }}>—</td>
                             <td style={{ ...TD, color: "#94A3C0", fontSize: 10 }}>{timeAgo(o.created_at)}</td>
                             <td style={TD}><StatusPill status={o.status} /></td>
                           </tr>
@@ -741,8 +878,8 @@ export default function AdminClient({
                       Gözləyən usta yoxdur ✓
                     </div>
                   ) : localPending.map((w: any) => {
-                    const profile = Array.isArray(w.profiles) ? w.profiles[0] : w.profiles;
-                    const cat = Array.isArray(w.categories) ? w.categories[0] : w.categories;
+                    const profile = w.profile;
+                    const cat = w.category;
                     const name = profile?.full_name ?? "—";
                     return (
                       <div key={w.user_id} style={{ ...S.pw, borderBottom: "0.5px solid #E4EAFB" }}>
@@ -750,7 +887,7 @@ export default function AdminClient({
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 12, fontWeight: 500, color: "#0D1F3C" }}>{name}</div>
                           <div style={{ fontSize: 10, color: "#94A3C0", marginTop: 1 }}>
-                            {profile?.phone ?? "—"} · {profile?.email ?? "—"} · {timeAgo(profile?.created_at ?? "")}
+                            {profile?.phone ?? "—"} · {profile?.created_at ? timeAgo(profile.created_at) : '—'}
                           </div>
                           <div style={{ display: "flex", gap: 3, marginTop: 4, flexWrap: "wrap" }}>
                             {cat && <Tag variant="cat">{cat.icon} {cat.name_az}</Tag>}
@@ -761,10 +898,10 @@ export default function AdminClient({
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                          <Btn variant="ghost">Sənədə bax</Btn>
+                          <Btn variant="ghost" onClick={() => setSelectedWorker(w)}>Bax</Btn>
                           <Btn variant="green" disabled={loadingId === w.user_id}
                             onClick={() => handleWorkerAction(w.user_id, "approve")}>
-                            {loadingId === w.user_id ? "..." : "✓ Təsdiqlə"}
+                            {loadingId === w.user_id ? "Gözlə..." : "Təsdiqlə"}
                           </Btn>
                           <Btn variant="red" disabled={loadingId === w.user_id}
                             onClick={() => handleWorkerAction(w.user_id, "reject")}>
@@ -791,8 +928,8 @@ export default function AdminClient({
                       </thead>
                       <tbody>
                         {activeWorkers.map((w: any) => {
-                          const profile = Array.isArray(w.profiles) ? w.profiles[0] : w.profiles;
-                          const cat = Array.isArray(w.categories) ? w.categories[0] : w.categories;
+                          const profile = w.profile;
+                          const cat = w.category;
                           const name = profile?.full_name ?? "—";
                           return (
                             <tr key={w.user_id}>
@@ -837,8 +974,8 @@ export default function AdminClient({
                       Bloklanmış usta yoxdur
                     </div>
                   ) : blockedWorkers.map((w: any) => {
-                    const profile = Array.isArray(w.profiles) ? w.profiles[0] : w.profiles;
-                    const cat = Array.isArray(w.categories) ? w.categories[0] : w.categories;
+                    const profile = w.profile;
+                    const cat = w.category;
                     const name = profile?.full_name ?? "—";
                     return (
                       <div key={w.user_id} style={{ ...S.pw, borderBottom: "0.5px solid #E4EAFB" }}>
@@ -883,7 +1020,7 @@ export default function AdminClient({
                   <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 500 }}>
                     <thead>
                       <tr>
-                        {["Ad", "Email", "Telefon", "Qeydiyyat", "Status", ""].map(h => (
+                        {["Ad", "Telefon", "Qeydiyyat", "Status", ""].map(h => (
                           <th key={h} style={TH}>{h}</th>
                         ))}
                       </tr>
@@ -897,7 +1034,7 @@ export default function AdminClient({
                               <span style={{ fontSize: 11, fontWeight: 500, color: "#0D1F3C" }}>{c.full_name ?? "—"}</span>
                             </div>
                           </td>
-                          <td style={{ ...TD, color: "#94A3C0", fontSize: 10 }}>{c.email ?? "—"}</td>
+                          
                           <td style={{ ...TD, color: "#94A3C0", fontSize: 10 }}>{c.phone ?? "—"}</td>
                           <td style={{ ...TD, color: "#94A3C0", fontSize: 10 }}>{timeAgo(c.created_at)}</td>
                           <td style={TD}><StatusPill status={c.is_verified ? "done" : "open"} /></td>
@@ -958,14 +1095,14 @@ export default function AdminClient({
                     </thead>
                     <tbody>
                       {filteredOrders.map((o: any) => {
-                        const cat = Array.isArray(o.categories) ? o.categories[0] : o.categories;
-                        const cust = Array.isArray(o.profiles) ? o.profiles[0] : o.profiles;
+                        const cat = o.category;
+                        const cust = o.profile ?? null;
                         return (
                           <tr key={o.id}>
                             <td style={{ ...TD, fontFamily: "'Playfair Display', serif", fontWeight: 700, color: "#1B4FD8", fontSize: 11 }}>{formatId(o.id)}</td>
                             <td style={TD}>{cat?.icon} {cat?.name_az ?? "—"}</td>
                             <td style={{ ...TD, color: "#94A3C0", fontSize: 10 }}>{o.address ?? "—"}</td>
-                            <td style={{ ...TD, color: "#94A3C0", fontSize: 10 }}>{cust?.full_name?.split(" ")[0] ?? "—"}</td>
+                            <td style={{ ...TD, color: "#94A3C0", fontSize: 10 }}>—</td>
                             <td style={{ ...TD, color: "#94A3C0", fontSize: 10 }}>{timeAgo(o.created_at)}</td>
                             <td style={TD}><StatusPill status={o.status} /></td>
                           </tr>
@@ -987,6 +1124,140 @@ export default function AdminClient({
 
         </div>
       </div>
+
+      {/* ── WORKER MODAL ── */}
+      {selectedWorker && (() => {
+        const profile = selectedWorker.profile;
+        const cat = selectedWorker.category;
+        const name = profile?.full_name ?? "—";
+        const expLabels: Record<string, string> = {
+          "lt1": "1 ildən az", "1-4": "1–4 il", "5-9": "5–9 il", "10plus": "10+ il",
+        };
+        return (
+          <div
+            onClick={() => setSelectedWorker(null)}
+            style={{
+              position: "fixed", inset: 0, zIndex: 1000,
+              background: "rgba(13,31,60,0.5)",
+              backdropFilter: "blur(4px)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              padding: 20,
+            }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: "#fff", borderRadius: 16,
+                width: "100%", maxWidth: 480,
+                boxShadow: "0 24px 64px rgba(13,31,60,0.25)",
+                overflow: "hidden",
+              }}
+            >
+              {/* Modal header */}
+              <div style={{
+                background: "linear-gradient(135deg, #1B4FD8, #2563EB)",
+                padding: "20px 20px 40px",
+                position: "relative",
+              }}>
+                <button
+                  onClick={() => setSelectedWorker(null)}
+                  style={{
+                    position: "absolute", top: 12, right: 12,
+                    width: 28, height: 28, borderRadius: "50%",
+                    background: "rgba(255,255,255,0.2)", border: "none",
+                    color: "#fff", fontSize: 14, cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}
+                >✕</button>
+                <div style={{
+                  width: 56, height: 56, borderRadius: "50%",
+                  background: "rgba(255,255,255,0.2)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 20, fontWeight: 700, color: "#fff",
+                  fontFamily: "'Playfair Display', serif",
+                  marginBottom: 12,
+                }}>
+                  {getInitials(name)}
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", fontFamily: "'Playfair Display', serif" }}>
+                  {name}
+                </div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", marginTop: 3 }}>
+                  {cat?.icon} {cat?.name_az ?? "—"}
+                </div>
+              </div>
+
+              {/* Modal body */}
+              <div style={{ padding: "20px", marginTop: -20, background: "#fff", borderRadius: "16px 16px 0 0", position: "relative" }}>
+
+                {/* Info rows */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+                  {[
+                    { label: "Telefon",    value: profile?.phone ?? "—" },
+                    { label: "Müraciət",   value: profile?.created_at ? timeAgo(profile.created_at) : '—' },
+                    { label: "Təcrübə",    value: expLabels[selectedWorker.experience_range ?? ""] ?? selectedWorker.experience_range ?? "—" },
+                    { label: "Qiymət",     value: selectedWorker.price_min || selectedWorker.price_max ? `${selectedWorker.price_min ?? "—"} – ${selectedWorker.price_max ?? "—"} ₼` : "Göstərilməyib" },
+                  ].map(row => (
+                    <div key={row.label} style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "9px 12px", background: "#F8FAFF",
+                      borderRadius: 8, border: "0.5px solid #E4EAFB",
+                    }}>
+                      <span style={{ fontSize: 11, color: "#94A3C0", fontWeight: 500 }}>{row.label}</span>
+                      <span style={{ fontSize: 12, color: "#0D1F3C", fontWeight: 500 }}>{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Districts */}
+                {(selectedWorker.available_districts ?? []).length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 10, color: "#94A3C0", fontWeight: 600, marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>
+                      İşləyə biləcəyi ərazilər
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 4 }}>
+                      {(selectedWorker.available_districts ?? []).map((d: string) => (
+                        <span key={d} style={{ fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 5, background: "#F1F5FE", color: "#4A5878" }}>
+                          {d}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
+                  <button
+                    onClick={() => { handleWorkerAction(selectedWorker.user_id, "reject"); setSelectedWorker(null); }}
+                    disabled={loadingId === selectedWorker.user_id}
+                    style={{
+                      flex: 1, padding: "10px", borderRadius: 9,
+                      background: "#FEE2E2", color: "#DC2626",
+                      border: "0.5px solid #FECACA",
+                      fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    }}
+                  >
+                    Rədd et
+                  </button>
+                  <button
+                    onClick={() => { handleWorkerAction(selectedWorker.user_id, "approve"); setSelectedWorker(null); }}
+                    disabled={loadingId === selectedWorker.user_id}
+                    style={{
+                      flex: 2, padding: "10px", borderRadius: 9,
+                      background: "linear-gradient(135deg, #1B4FD8, #2563EB)",
+                      color: "#fff", border: "none",
+                      fontSize: 12, fontWeight: 600, cursor: "pointer",
+                      boxShadow: "0 4px 12px rgba(27,79,216,0.25)",
+                    }}
+                  >
+                    {loadingId === selectedWorker.user_id ? "Gözlə..." : "Təsdiqlə"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── TOAST ── */}
       {toast && (
