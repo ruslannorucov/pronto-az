@@ -2,6 +2,7 @@ import Navbar from "@/components/Navbar";
 import { createClient } from "@/lib/supabase/server";
 import Footer from "@/components/Footer";
 import { Search } from "lucide-react";
+import HeroVideoBackgroundWrapper from "@/components/HeroVideoBackgroundWrapper";
 
 const heroChips = [
   "🚿 Santexnik",
@@ -58,30 +59,18 @@ export default async function Home() {
       <Navbar />
 
       {/* ── HERO ── */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#0D1F3C] via-[#162F6A] to-[#1E1B6E] px-4 md:px-8 lg:px-16 py-16 md:py-24 lg:py-28">
-        <div className="pointer-events-none absolute inset-0">
-          <div
-            className="absolute inset-0 opacity-100"
-            style={{
-              backgroundImage:
-                "linear-gradient(rgba(27,79,216,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(27,79,216,0.07) 1px, transparent 1px)",
-              backgroundSize: "48px 48px",
-              maskImage:
-                "radial-gradient(ellipse 80% 70% at 50% 40%, black 30%, transparent 100%)",
-            }}
-          />
-          <div className="absolute right-0 top-0 h-[600px] w-[600px] rounded-full bg-[radial-gradient(ellipse_60%_80%_at_70%_50%,rgba(27,79,216,0.25),transparent_70%)]" />
-          <div className="absolute -bottom-20 left-1/4 h-[400px] w-[400px] rounded-full bg-[radial-gradient(ellipse,rgba(30,27,110,0.4),transparent_70%)]" />
-        </div>
+      <section className="relative overflow-hidden bg-[#0D1F3C] px-4 md:px-8 lg:px-16 py-16 md:py-24 lg:py-28">
 
-        <div className="relative mx-auto max-w-7xl flex flex-col items-center text-center">
+        {/* ── Video arxa fon + overlay + grid ── */}
+        <HeroVideoBackgroundWrapper />
+
+        <div className="relative z-10 mx-auto max-w-7xl flex flex-col items-center text-center">
           <div className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-[rgba(147,180,255,0.25)] bg-[rgba(27,79,216,0.18)] px-3.5 py-1.5">
             <span className="text-xs font-semibold uppercase tracking-widest text-[#93B4FF]">
               ⚡ Bakıda №1 Ev Xidmətləri Platforması
             </span>
           </div>
 
-          {/* FIX: Responsive heading — was fixed text-[44px] */}
           <h1 className="font-serif mx-auto max-w-[620px] text-[28px] sm:text-[36px] md:text-[44px] lg:text-[52px] font-extrabold leading-[1.15] text-white mb-4">
             Evdə problem?{" "}
             <br />
@@ -96,9 +85,7 @@ export default async function Home() {
             müqayisə edin, ən yaxşısını seçin.
           </p>
 
-          {/* Search bar — tək sıra, bütün ölçülərdə */}
           <div className="flex mx-auto max-w-[660px] w-full items-center rounded-[24px] bg-white p-1.5 shadow-[0_16px_48px_rgba(13,31,60,0.22)]">
-            {/* Şəhər — yalnız sm+ ekranlarda göstər */}
             <div className="hidden sm:flex items-center gap-2 border-r-[1.5px] border-[var(--border)] px-5 py-2 shrink-0 min-w-[160px]">
               <span className="text-lg">📍</span>
               <div>
@@ -110,13 +97,11 @@ export default async function Home() {
                 <p className="text-[11px] text-[var(--text-3)]">Şəhər</p>
               </div>
             </div>
-            {/* Input */}
             <input
               type="text"
               placeholder="Santexnik, elektrik, təmizlik..."
               className="flex-1 min-w-0 bg-transparent px-5 text-[14px] md:text-[15px] text-[var(--navy)] placeholder:text-[var(--text-3)] outline-none"
             />
-            {/* Düymə */}
             <button className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-[var(--primary)] text-white transition-colors hover:bg-[var(--primary-light)]">
               <Search size={20} strokeWidth={2.5} />
             </button>
@@ -133,7 +118,6 @@ export default async function Home() {
             ))}
           </div>
 
-          {/* FIX: Stats row — flex→grid, px-8→adaptive */}
           <div className="mt-12 w-full max-w-2xl border-t border-white/8 pt-9">
             <div className="grid grid-cols-2 sm:grid-cols-4">
               {heroStats.map((stat, i) => (
@@ -144,7 +128,6 @@ export default async function Home() {
                       ? "border-r border-white/8 last:border-r-0"
                       : ""
                   } ${
-                    // Mobile-da 2x2 grid: alt sıradakılar üst border alır
                     i >= 2 ? "border-t border-white/8 sm:border-t-0" : ""
                   }`}
                 >
@@ -191,7 +174,6 @@ export default async function Home() {
                   ? cat.worker_profiles[0]
                   : cat.worker_profiles;
                 const workerCount = (workerCountData as any)?.count ?? 0;
-
                 const isFeatured = index === 0;
 
                 return isFeatured ? (
@@ -237,7 +219,6 @@ export default async function Home() {
       )}
 
       {/* ── NECƏ İŞLƏYİR ── */}
-      {/* FIX: px-16 → px-4 md:px-8 lg:px-16 */}
       <section
         id="how-it-works"
         className="relative overflow-hidden bg-gradient-to-br from-[#0D1F3C] to-[#162F6A] px-4 md:px-8 lg:px-16 py-12 md:py-20"
@@ -381,8 +362,6 @@ export default async function Home() {
                       )}
                       <div className="absolute -bottom-[30px] left-5 w-[60px] h-[60px] rounded-full border-[3px] border-white bg-gradient-to-br from-[#60A5FA] to-[#1B4FD8] flex items-center justify-center text-2xl shadow-md overflow-hidden">
                         {profile?.avatar_url ? (
-                          // NOTE: next/image burada işlətmək üçün domains konfiqurasiyası lazımdır
-                          // Post-MVP: <Image src={} ... sizes="60px" /> ilə əvəz et
                           <img
                             src={profile.avatar_url}
                             alt={profile.full_name ?? ""}
