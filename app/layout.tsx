@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Playfair_Display, DM_Sans } from "next/font/google";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
+import AppShell from "@/components/AppShell";
 
-// Headings üçün font
 const playfair = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-playfair",
@@ -11,7 +11,6 @@ const playfair = Playfair_Display({
   style: ["normal", "italic"],
 });
 
-// Bütün digər mətnlər üçün font
 const dmSans = DM_Sans({
   subsets: ["latin"],
   variable: "--font-dm-sans",
@@ -31,7 +30,9 @@ export default function RootLayout({
   return (
     <html lang="az" className={`${playfair.variable} ${dmSans.variable}`}>
       <body className="font-sans text-[var(--text)] bg-[var(--bg)] min-h-screen">
-        {children}
+        <AppShell>
+          {children}
+        </AppShell>
       </body>
     </html>
   );
