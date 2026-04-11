@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/client";
 import AppTopBar from "@/components/AppTopBar";
 import BottomNav from "@/components/BottomNav";
 
-// Bu route-larda TopBar + BottomNav göstərilmir
 const SHELL_EXCLUDED = [
   "/login",
   "/register",
@@ -16,12 +15,12 @@ const SHELL_EXCLUDED = [
 ];
 
 function isExcluded(pathname: string): boolean {
-  if (pathname === "/") return true; // landing page
+  if (pathname === "/") return true;
   return SHELL_EXCLUDED.some((p) => pathname.startsWith(p));
 }
 
 interface UserInfo {
-  role: "customer" | "worker" | "admin";
+  role: "customer" | "worker";
   fullName: string;
   email: string;
   initials: string;
@@ -46,7 +45,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         .eq("id", authUser.id)
         .single();
 
+      // Admin və ya profile yoxdursa shell göstərmə
       if (!profile || profile.role === "admin") { setChecked(true); return; }
+
+      // Yalnız customer və worker üçün davam et
+      const validRole = profile.role === "worker" ? "worker" : "customer";
 
       const parts = (profile.full_name ?? "").trim().split(" ");
       const initials = parts.length >= 2
@@ -60,7 +63,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         .is("read_at", null);
 
       let activeBadge = 0;
-      if (profile.role === "worker") {
+      if (validRole === "worker") {
         const { count } = await supabase
           .from("offers")
           .select("*", { count: "exact", head: true })
@@ -70,7 +73,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       }
 
       setUser({
-        role: profile.role as "customer" | "worker",
+        role: validRole,
         fullName: profile.full_name ?? "",
         email: authUser.email ?? "",
         initials,
