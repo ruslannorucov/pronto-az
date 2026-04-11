@@ -1,4 +1,5 @@
-import Navbar from "@/components/Navbar";
+import AppTopBar from "@/components/AppTopBar";
+import BottomNav from "@/components/BottomNav";
 
 export default function CustomerLayout({
   children,
@@ -7,8 +8,9 @@ export default function CustomerLayout({
 }) {
   return (
     <div className="min-h-screen bg-[var(--gray-50)]">
-      <Navbar variant="app" />
+      <AppTopBar userRole="customer" />
       {children}
+      <BottomNav variant="customer" />
     </div>
   );
 }

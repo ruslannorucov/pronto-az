@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import AppTopBar from "@/components/AppTopBar";
+import BottomNav from "@/components/BottomNav";
 
 interface WorkerStatus {
   verified:  boolean;
@@ -16,7 +18,7 @@ const PUBLIC_WORKER_ROUTES = [
   "/worker/pending",
 ];
 
-// ─── Pending UI ────────────────────────────────────────────────────────────────
+// ─── Pending UI ───────────────────────────────────────────────────────────────
 
 function PendingScreen() {
   const STATUS_STEPS = [
@@ -132,7 +134,7 @@ function PendingScreen() {
   );
 }
 
-// ─── Blocked UI ────────────────────────────────────────────────────────────────
+// ─── Blocked UI ───────────────────────────────────────────────────────────────
 
 function BlockedScreen() {
   return (
@@ -181,7 +183,7 @@ function BlockedScreen() {
   );
 }
 
-// ─── Loading UI ────────────────────────────────────────────────────────────────
+// ─── Loading UI ───────────────────────────────────────────────────────────────
 
 function LoadingScreen() {
   return (
@@ -195,7 +197,7 @@ function LoadingScreen() {
   );
 }
 
-// ─── Main layout ───────────────────────────────────────────────────────────────
+// ─── Main layout ──────────────────────────────────────────────────────────────
 
 export default function WorkerLayout({ children }: { children: React.ReactNode }) {
   const router   = useRouter();
@@ -205,13 +207,11 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
   const [status,  setStatus]  = useState<WorkerStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Public route-larda layout gate işləmir — birbaşa children render et
   const isPublicRoute = PUBLIC_WORKER_ROUTES.some(route =>
     pathname.startsWith(route)
   );
 
   useEffect(() => {
-    // Public route-larda Supabase sorğusu etmə
     if (isPublicRoute) {
       setLoading(false);
       return;
@@ -225,7 +225,6 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
         return;
       }
 
-      // Role yoxla
       const { data: profile } = await supabase
         .from("profiles")
         .select("role")
@@ -237,7 +236,6 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
         return;
       }
 
-      // Worker status yoxla
       const { data: wp } = await supabase
         .from("worker_profiles")
         .select("verified, is_active")
@@ -256,17 +254,20 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
     checkStatus();
   }, [pathname]);
 
-  // Public route — gate yoxdur
+  // Public route — gate yoxdur, AppTopBar/BottomNav da yoxdur
   if (isPublicRoute) return <>{children}</>;
 
   if (loading) return <LoadingScreen />;
 
-  // Təsdiqlənməyib → pending ekranı
   if (!status?.verified) return <PendingScreen />;
 
-  // Aktiv deyil → blok ekranı
   if (!status?.is_active) return <BlockedScreen />;
 
-  // Hər şey okaysa → normal dashboard
-  return <>{children}</>;
+  return (
+    <div className="min-h-screen bg-[var(--gray-50)]">
+      <AppTopBar userRole="worker" />
+      {children}
+      <BottomNav variant="worker" />
+    </div>
+  );
 }
