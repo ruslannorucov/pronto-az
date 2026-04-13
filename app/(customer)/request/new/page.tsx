@@ -214,7 +214,8 @@ export default function NewRequestPage() {
     setForm(p => ({ ...p, media: p.media.filter((_, idx) => idx !== i) }));
   };
 
-  const step1Valid = !!form.categoryId && !!form.subCategoryId;
+  // FIX 1: subCategoryId is optional — only categoryId is required
+  const step1Valid = !!form.categoryId;
   const step2Valid = form.description.trim().length >= 10;
   const step3Valid = (() => {
     if (!form.address.trim() || !form.timeType) return false;
@@ -244,7 +245,7 @@ export default function NewRequestPage() {
         const { error } = await supabase.from("job_requests").insert({
           customer_id: user.id,
           category_id: form.categoryId,
-          sub_category_id: form.subCategoryId,
+          sub_category_id: form.subCategoryId || null,
           description: form.description,
           address: form.address,
           location_lat: form.lat,
@@ -265,7 +266,7 @@ export default function NewRequestPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--gray-50)] flex flex-col max-w-lg mx-auto">
+    <div className="min-h-screen bg-[var(--gray-50)] flex flex-col max-w-lg mx-auto relative">
       <style>{`
         @keyframes bounce-dot {
           0%, 100% { transform: translateY(0); opacity: 0.4; }
@@ -323,7 +324,7 @@ export default function NewRequestPage() {
       </div>
 
       {/* ── Content ── */}
-      <div className="flex-1 overflow-y-auto pb-28 px-5 pt-6">
+      <div className="flex-1 overflow-y-auto pb-6 px-5 pt-6">
 
         {/* ────── ADDIM 1 ────── */}
         {step === 1 && (
@@ -368,14 +369,14 @@ export default function NewRequestPage() {
               <div className="mt-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-px flex-1 bg-[var(--gray-200)]" />
-                  <p className="text-[11px] font-bold text-[var(--gray-400)] uppercase tracking-wider">Alt kateqoriya</p>
+                  <p className="text-[11px] font-bold text-[var(--gray-400)] uppercase tracking-wider">Alt kateqoriya <span className="font-normal normal-case">(ixtiyari)</span></p>
                   <div className="h-px flex-1 bg-[var(--gray-200)]" />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {subCategories.map((sub) => (
                     <button
                       key={sub.id}
-                      onClick={() => setForm(p => ({ ...p, subCategoryId: sub.id }))}
+                      onClick={() => setForm(p => ({ ...p, subCategoryId: p.subCategoryId === sub.id ? "" : sub.id }))}
                       className={`
                         text-[12px] font-semibold px-4 py-2 rounded-full border-[1.5px]
                         transition-all duration-150 active:scale-95
@@ -623,7 +624,6 @@ export default function NewRequestPage() {
         {/* ────── ADDIM 4: Sifariş verildi ────── */}
         {step === 4 && (
           <div>
-            {/* Animasiya paneli */}
             <div
               className="relative flex flex-col items-center gap-4 py-8 px-4 rounded-2xl overflow-hidden mb-4"
               style={{ background: "linear-gradient(135deg, #0D1F3C, #162F6A)" }}
@@ -635,13 +635,11 @@ export default function NewRequestPage() {
                   backgroundSize: "24px 24px",
                 }}
               />
-              {/* Pulse ring */}
               <div className="relative z-10 flex items-center justify-center w-20 h-20">
                 <div className="absolute inset-0 rounded-full border-2 border-[rgba(147,180,255,0.3)]" style={{ animation: "pulse-out 2s ease-out infinite" }} />
                 <div className="absolute rounded-full border border-[rgba(147,180,255,0.15)]" style={{ inset: "-10px", animation: "pulse-out 2s ease-out 0.5s infinite" }} />
                 <div className="w-14 h-14 rounded-full bg-[rgba(27,79,216,0.4)] flex items-center justify-center text-3xl z-10">🔍</div>
               </div>
-              {/* Bouncing dots */}
               <div className="flex gap-2 z-10">
                 {[0, 1, 2].map(i => (
                   <div key={i} className="w-2 h-2 rounded-full bg-[#93B4FF]" style={{ animation: `bounce-dot 1.2s ease-in-out ${i * 0.2}s infinite` }} />
@@ -652,7 +650,6 @@ export default function NewRequestPage() {
               </p>
             </div>
 
-            {/* Progress bar */}
             <div className="h-1.5 bg-[var(--gray-100)] rounded-full overflow-hidden mb-3">
               <div className="h-full rounded-full" style={{ background: "linear-gradient(90deg, #1B4FD8, #60A5FA)", animation: "progress-pulse 2s ease-in-out infinite" }} />
             </div>
@@ -663,7 +660,6 @@ export default function NewRequestPage() {
               <span className="font-semibold text-[#25D366]">WhatsApp bildirişi</span> alacaqsınız
             </p>
 
-            {/* Sifariş məlumatları */}
             <div className="bg-white border border-[var(--border)] rounded-2xl px-4 py-3.5 mb-4">
               <p className="text-[11px] font-bold text-[var(--gray-400)] uppercase tracking-wider mb-2">Sifariş məlumatları</p>
               <div className="space-y-1.5">
@@ -688,7 +684,6 @@ export default function NewRequestPage() {
               </div>
             </div>
 
-            {/* Sifarişlərimə get */}
             <a
               href="/dashboard"
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-[var(--primary)] text-white text-[13px] font-bold hover:bg-[var(--primary-light)] transition-colors"
@@ -699,9 +694,10 @@ export default function NewRequestPage() {
         )}
       </div>
 
-      {/* ── Sticky CTA ── */}
+      {/* ── Sticky CTA ── sticky inside flex column, always visible at bottom */}
       {step < 4 && (
-        <div className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto px-5 py-4 bg-white/90 backdrop-blur-md border-t border-[var(--gray-200)]">
+        <div className="sticky bottom-0 left-0 right-0 px-5 py-4 bg-white/90 backdrop-blur-md border-t border-[var(--gray-200)]"
+             style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}>
           <button
             onClick={handleNext}
             disabled={!canProceed() || submitting}

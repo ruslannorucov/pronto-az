@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { createClient } from "@/lib/supabase/server";
 import Footer from "@/components/Footer";
@@ -30,6 +31,10 @@ const bannerGradients = [
 
 export default async function Home() {
   const supabase = await createClient();
+
+  // Login olmuş istifadəçini dashboard-a yönləndir
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) redirect("/dashboard");
 
   const { data: categories } = await supabase
     .from("categories")
@@ -81,7 +86,6 @@ export default async function Home() {
             </span>
           </div>
 
-          {/* FIX: Responsive heading — was fixed text-[44px] */}
           <h1 className="font-serif mx-auto max-w-[620px] text-[28px] sm:text-[36px] md:text-[44px] lg:text-[52px] font-extrabold leading-[1.15] text-white mb-4">
             Evdə problem?{" "}
             <br />
@@ -96,9 +100,7 @@ export default async function Home() {
             müqayisə edin, ən yaxşısını seçin.
           </p>
 
-          {/* Search bar — tək sıra, bütün ölçülərdə */}
           <div className="flex mx-auto max-w-[660px] w-full items-center rounded-[24px] bg-white p-1.5 shadow-[0_16px_48px_rgba(13,31,60,0.22)]">
-            {/* Şəhər — yalnız sm+ ekranlarda göstər */}
             <div className="hidden sm:flex items-center gap-2 border-r-[1.5px] border-[var(--border)] px-5 py-2 shrink-0 min-w-[160px]">
               <span className="text-lg">📍</span>
               <div>
@@ -110,13 +112,11 @@ export default async function Home() {
                 <p className="text-[11px] text-[var(--text-3)]">Şəhər</p>
               </div>
             </div>
-            {/* Input */}
             <input
               type="text"
               placeholder="Santexnik, elektrik, təmizlik..."
               className="flex-1 min-w-0 bg-transparent px-5 text-[14px] md:text-[15px] text-[var(--navy)] placeholder:text-[var(--text-3)] outline-none"
             />
-            {/* Düymə */}
             <button className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-[var(--primary)] text-white transition-colors hover:bg-[var(--primary-light)]">
               <Search size={20} strokeWidth={2.5} />
             </button>
@@ -133,7 +133,6 @@ export default async function Home() {
             ))}
           </div>
 
-          {/* FIX: Stats row — flex→grid, px-8→adaptive */}
           <div className="mt-12 w-full max-w-2xl border-t border-white/8 pt-9">
             <div className="grid grid-cols-2 sm:grid-cols-4">
               {heroStats.map((stat, i) => (
@@ -190,7 +189,6 @@ export default async function Home() {
                   ? cat.worker_profiles[0]
                   : cat.worker_profiles;
                 const workerCount = (workerCountData as any)?.count ?? 0;
-
                 const isFeatured = index === 0;
 
                 return isFeatured ? (
@@ -206,9 +204,7 @@ export default async function Home() {
                         {cat.name_az}
                       </p>
                       <p className="text-white/65 text-[12px] md:text-[13px]">
-                        {workerCount > 0
-                          ? `${workerCount} usta hazır`
-                          : "Ustalar gəlir"}
+                        {workerCount > 0 ? `${workerCount} usta hazır` : "Ustalar gəlir"}
                       </p>
                       <span className="mt-2 inline-block text-xs font-bold text-white/90 bg-white/15 px-2.5 py-1 rounded-full">
                         🔥 Populyar
@@ -236,7 +232,6 @@ export default async function Home() {
       )}
 
       {/* ── NECƏ İŞLƏYİR ── */}
-      {/* FIX: px-16 → px-4 md:px-8 lg:px-16 */}
       <section
         id="how-it-works"
         className="relative overflow-hidden bg-gradient-to-br from-[#0D1F3C] to-[#162F6A] px-4 md:px-8 lg:px-16 py-12 md:py-20"
@@ -249,7 +244,6 @@ export default async function Home() {
             backgroundSize: "48px 48px",
           }}
         />
-
         <div className="relative mx-auto max-w-7xl">
           <div className="text-center mb-10 md:mb-12">
             <p className="text-xs font-bold uppercase tracking-widest text-[#93B4FF] mb-3">
@@ -258,37 +252,15 @@ export default async function Home() {
             <h2 className="font-serif text-[24px] md:text-[30px] font-bold text-white mb-2">
               Necə işləyir?
             </h2>
-            <p className="text-[15px] text-white/50">
-              4 addımda probleminizi həll edin
-            </p>
+            <p className="text-[15px] text-white/50">4 addımda probleminizi həll edin</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              {
-                num: "01",
-                icon: "📝",
-                title: "Sifariş yarat",
-                desc: "Probleminizi təsvir edin, şəkil əlavə edin, ünvan və vaxt seçin",
-              },
-              {
-                num: "02",
-                icon: "🔔",
-                title: "Ustalar görür",
-                desc: "Uyğun ustalar bildiriş alır ve sifarişinizə qiymət təklifi verir",
-              },
-              {
-                num: "03",
-                icon: "⚖️",
-                title: "3 təklifi müqayisə et",
-                desc: "Qiymət, reytinq və rəylər əsasında ən uyğun ustanı seçirsiniz",
-              },
-              {
-                num: "04",
-                icon: "✅",
-                title: "İş tamamlanır",
-                desc: "Usta gəlir, işi edir. Siz ödəyirsiniz və rəy yazırsınız",
-              },
+              { num: "01", icon: "📝", title: "Sifariş yarat",        desc: "Probleminizi təsvir edin, şəkil əlavə edin, ünvan və vaxt seçin" },
+              { num: "02", icon: "🔔", title: "Ustalar görür",         desc: "Uyğun ustalar bildiriş alır ve sifarişinizə qiymət təklifi verir" },
+              { num: "03", icon: "⚖️", title: "3 təklifi müqayisə et", desc: "Qiymət, reytinq və rəylər əsasında ən uyğun ustanı seçirsiniz" },
+              { num: "04", icon: "✅", title: "İş tamamlanır",         desc: "Usta gəlir, işi edir. Siz ödəyirsiniz və rəy yazırsınız" },
             ].map((step, i) => (
               <div
                 key={step.num}
@@ -301,12 +273,8 @@ export default async function Home() {
                   {step.num}
                 </p>
                 <span className="text-[28px] mb-3 block">{step.icon}</span>
-                <h3 className="text-[14px] md:text-[15px] font-semibold text-white mb-2">
-                  {step.title}
-                </h3>
-                <p className="text-[12px] md:text-[13px] text-white/50 leading-relaxed">
-                  {step.desc}
-                </p>
+                <h3 className="text-[14px] md:text-[15px] font-semibold text-white mb-2">{step.title}</h3>
+                <p className="text-[12px] md:text-[13px] text-white/50 leading-relaxed">{step.desc}</p>
               </div>
             ))}
           </div>
@@ -380,32 +348,21 @@ export default async function Home() {
                       )}
                       <div className="absolute -bottom-[30px] left-5 w-[60px] h-[60px] rounded-full border-[3px] border-white bg-gradient-to-br from-[#60A5FA] to-[#1B4FD8] flex items-center justify-center text-2xl shadow-md overflow-hidden">
                         {profile?.avatar_url ? (
-                          <img
-                            src={profile.avatar_url}
-                            alt={profile.full_name ?? ""}
-                            className="w-full h-full object-cover"
-                          />
+                          <img src={profile.avatar_url} alt={profile.full_name ?? ""} className="w-full h-full object-cover" />
                         ) : (
                           <span>{category?.icon ?? "👷"}</span>
                         )}
                       </div>
                     </div>
-
                     <div className="pt-10 px-5 pb-5">
                       <h3 className="font-serif text-[16px] font-semibold text-[var(--navy)] mb-0.5">
                         {profile?.full_name ?? "Usta"}
                       </h3>
-                      <p className="text-[13px] text-[var(--text-3)] mb-3">
-                        {category?.name_az ?? ""}
-                      </p>
+                      <p className="text-[13px] text-[var(--text-3)] mb-3">{category?.name_az ?? ""}</p>
                       <div className="flex items-center gap-1.5 mb-4">
                         <span className="text-[13px]">⭐</span>
-                        <span className="text-[13px] font-semibold text-[var(--navy)]">
-                          {worker.rating ?? "—"}
-                        </span>
-                        <span className="text-[12px] text-[var(--text-3)]">
-                          · {worker.review_count ?? 0} rəy
-                        </span>
+                        <span className="text-[13px] font-semibold text-[var(--navy)]">{worker.rating ?? "—"}</span>
+                        <span className="text-[12px] text-[var(--text-3)]">· {worker.review_count ?? 0} rəy</span>
                       </div>
                       <div className="flex gap-2">
                         <a

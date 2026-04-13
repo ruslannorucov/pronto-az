@@ -41,7 +41,6 @@ function formatId(id: string): string {
   return "#PRN-" + id.slice(0, 4).toUpperCase();
 }
 
-// ── State 1: Usta axtarılır (accordion) ──
 function SearchingCard({ order, onCancel }: { order: Order; onCancel: (id: string) => void }) {
   const [open, setOpen] = useState(false);
   return (
@@ -49,12 +48,10 @@ function SearchingCard({ order, onCancel }: { order: Order; onCancel: (id: strin
       className="bg-white rounded-2xl overflow-hidden transition-all"
       style={{ border: open ? "1.5px solid #1B4FD8" : "1px solid var(--border)" }}
     >
-      {/* Header — həmişə görünür */}
       <div
         className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none"
         onClick={() => setOpen(o => !o)}
       >
-        {/* Pulse ikon */}
         <div className="relative w-9 h-9 flex items-center justify-center flex-shrink-0">
           <div className="absolute inset-0 rounded-full border-[1.5px] border-[rgba(27,79,216,0.3)]"
             style={{ animation: "pulse-out 2s ease-out infinite" }} />
@@ -64,8 +61,6 @@ function SearchingCard({ order, onCancel }: { order: Order; onCancel: (id: strin
             {order.categories?.icon ?? "🔧"}
           </div>
         </div>
-
-        {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-[13px] font-bold text-[var(--navy)] truncate">
@@ -79,8 +74,6 @@ function SearchingCard({ order, onCancel }: { order: Order; onCancel: (id: strin
             📍 {order.address ?? "Ünvan yoxdur"} · {formatTime(order)}
           </p>
         </div>
-
-        {/* Dots + chevron */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="flex gap-[3px] items-center">
             {[0,1,2].map(i => (
@@ -94,11 +87,8 @@ function SearchingCard({ order, onCancel }: { order: Order; onCancel: (id: strin
           </svg>
         </div>
       </div>
-
-      {/* Body — açılanda görünür */}
       <div style={{ maxHeight: open ? "300px" : "0", overflow: "hidden", transition: "max-height 0.3s ease" }}>
         <div className="px-4 pb-4 border-t border-[var(--gray-200)]">
-          {/* Progress bar */}
           <div className="h-[3px] bg-[var(--gray-100)] rounded-full overflow-hidden mt-3 mb-2">
             <div className="h-full rounded-full"
               style={{ background: "linear-gradient(90deg, #1B4FD8, #60A5FA)", animation: "progress-pulse 2s ease-in-out infinite" }} />
@@ -106,7 +96,6 @@ function SearchingCard({ order, onCancel }: { order: Order; onCancel: (id: strin
           <p className="text-[11px] text-[var(--gray-400)] text-center mb-3">
             Adətən <span className="font-semibold text-[var(--navy)]">15–45 dəq</span> ərzində təklif gəlir
           </p>
-          {/* Meta pills */}
           <div className="flex gap-2 mb-3">
             {[
               { label: "Ünvan", value: order.address ?? "—" },
@@ -133,14 +122,12 @@ function SearchingCard({ order, onCancel }: { order: Order; onCancel: (id: strin
   );
 }
 
-// ── State 2: Təklif gəldi ──
 function OfferCard({ order }: { order: Order }) {
   return (
     <Link
       href={`/request/${order.id}`}
       className="block bg-white border-[1.5px] border-[var(--primary)] rounded-2xl overflow-hidden shadow-[0_4px_16px_rgba(27,79,216,0.1)] hover:shadow-[0_8px_24px_rgba(27,79,216,0.15)] transition-all"
     >
-      {/* Header */}
       <div className="bg-[var(--primary-bg)] px-4 py-2.5 flex items-center justify-between">
         <p className="text-[12px] font-bold text-[var(--navy)]">
           {order.categories?.icon} {order.categories?.name_az} · {formatId(order.id)}
@@ -152,16 +139,12 @@ function OfferCard({ order }: { order: Order }) {
           </span>
         </div>
       </div>
-
-      {/* Body */}
       <div className="px-4 py-3">
         <p className="text-[11px] text-[var(--gray-400)] mb-3">
           📍 {order.address ?? "Ünvan yoxdur"} · {formatTime(order)}
         </p>
         <div className="bg-[var(--primary-bg)] rounded-xl px-3 py-2.5 flex items-center justify-between">
-          <p className="text-[12px] font-bold text-[var(--primary)]">
-            Müqayisə et və seç
-          </p>
+          <p className="text-[12px] font-bold text-[var(--primary)]">Müqayisə et və seç</p>
           <span className="text-[var(--primary)]">→</span>
         </div>
       </div>
@@ -169,12 +152,10 @@ function OfferCard({ order }: { order: Order }) {
   );
 }
 
-// ── Helpers ──
 function getInitials(name: string) {
   return name.trim().split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase();
 }
 
-// ── State 3: Usta yolda (tracking card) ──
 function TrackingCard({ order, onReload }: { order: Order; onReload: () => void }) {
   const [open, setOpen] = useState(true);
   const [showChat, setShowChat] = useState(false);
@@ -203,17 +184,15 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
   };
 
   const steps = [
-    { label: "Qəbul",   done: true,  active: false },
-    { label: "Ödəniş",  done: true,  active: false },
-    { label: "Yolda",   done: false, active: true  },
-    { label: "Gəldi",   done: false, active: false },
-    { label: "Bitdi",   done: false, active: false },
+    { label: "Qəbul",  done: true,  active: false },
+    { label: "Ödəniş", done: true,  active: false },
+    { label: "Yolda",  done: false, active: true  },
+    { label: "Gəldi",  done: false, active: false },
+    { label: "Bitdi",  done: false, active: false },
   ];
 
   return (
     <div style={{ background: "#fff", border: "1.5px solid #A7F3D0", borderRadius: 18, overflow: "hidden", boxShadow: "0 4px 16px rgba(16,185,129,0.07)" }}>
-
-      {/* ── Top bar ── */}
       <button
         onClick={() => setOpen(o => !o)}
         style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
@@ -232,11 +211,8 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
         </div>
       </button>
 
-      {/* ── Body ── */}
       <div style={{ maxHeight: open ? "500px" : "0", overflow: "hidden", transition: "max-height 0.35s ease" }}>
         <div style={{ borderTop: "0.5px solid #E8FDF5" }}>
-
-          {/* Usta row */}
           {worker ? (
             <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: "0.5px solid #F0F9F6" }}>
               <div style={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, background: "linear-gradient(135deg,#1B4FD8,#2563EB)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#fff", fontFamily: "'Playfair Display', serif" }}>
@@ -276,7 +252,6 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
             </div>
           )}
 
-          {/* Ödəniş təsdiqləmə düyməsi */}
           {!paymentStatus && worker && (
             <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #F0F9F6", background: "#FFFBEB" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
@@ -287,15 +262,7 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
                 <button
                   onClick={e => { e.stopPropagation(); handleConfirmPayment(); }}
                   disabled={confirmingPayment}
-                  style={{
-                    padding: "8px 16px", borderRadius: 10, border: "none",
-                    background: "linear-gradient(135deg,#F59E0B,#D97706)",
-                    color: "#fff", fontSize: 11, fontWeight: 700,
-                    cursor: confirmingPayment ? "not-allowed" : "pointer",
-                    opacity: confirmingPayment ? 0.7 : 1,
-                    whiteSpace: "nowrap", flexShrink: 0, fontFamily: "inherit",
-                    boxShadow: "0 3px 10px rgba(245,158,11,0.3)",
-                  }}
+                  style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#F59E0B,#D97706)", color: "#fff", fontSize: 11, fontWeight: 700, cursor: confirmingPayment ? "not-allowed" : "pointer", opacity: confirmingPayment ? 0.7 : 1, whiteSpace: "nowrap", flexShrink: 0, fontFamily: "inherit", boxShadow: "0 3px 10px rgba(245,158,11,0.3)" }}
                 >
                   {confirmingPayment ? "..." : "Təsdiqlə →"}
                 </button>
@@ -308,21 +275,13 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
             </div>
           )}
 
-          {/* Steps */}
           <div style={{ padding: "14px 16px 12px", position: "relative" }}>
             <div style={{ position: "absolute", top: 23, left: 28, right: 28, height: 2, background: "#E4EAFB", zIndex: 0 }} />
             <div style={{ position: "absolute", top: 23, left: 28, width: "40%", height: 2, background: "#10B981", zIndex: 1 }} />
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", position: "relative", zIndex: 2 }}>
               {steps.map((s, i) => (
                 <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                  <div style={{
-                    width: 20, height: 20, borderRadius: "50%",
-                    background: s.done ? "#10B981" : s.active ? "#1B4FD8" : "#fff",
-                    border: s.done ? "2px solid #10B981" : s.active ? "2px solid #1B4FD8" : "2px solid #E4EAFB",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 9, color: "#fff",
-                    animation: s.active ? "pulse-out 1.5s infinite" : "none",
-                  }}>
+                  <div style={{ width: 20, height: 20, borderRadius: "50%", background: s.done ? "#10B981" : s.active ? "#1B4FD8" : "#fff", border: s.done ? "2px solid #10B981" : s.active ? "2px solid #1B4FD8" : "2px solid #E4EAFB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#fff", animation: s.active ? "pulse-out 1.5s infinite" : "none" }}>
                     {s.done ? "✓" : s.active ? "→" : ""}
                   </div>
                   <span style={{ fontSize: 9, fontWeight: s.done ? 600 : s.active ? 700 : 400, color: s.done ? "#10B981" : s.active ? "#1B4FD8" : "#94A3C0" }}>
@@ -333,7 +292,6 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
             </div>
           </div>
 
-          {/* Mini map */}
           <div style={{ margin: "0 16px 16px", background: "#EEF3FF", borderRadius: 12, height: 76, position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ position: "absolute", inset: 0, opacity: 0.15, backgroundImage: "linear-gradient(#94A3C0 1px,transparent 1px),linear-gradient(90deg,#94A3C0 1px,transparent 1px)", backgroundSize: "18px 18px" }} />
             <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 10 }}>
@@ -347,7 +305,6 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
         </div>
       </div>
 
-      {/* Chat Modal */}
       {showChat && worker && (
         <ChatModal
           jobId={order.id}
@@ -360,7 +317,6 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
   );
 }
 
-// ── Chat Modal ──
 function ChatModal({ jobId, workerName, onClose }: {
   jobId: string;
   offerId: string;
@@ -434,7 +390,6 @@ function ChatModal({ jobId, workerName, onClose }: {
         style={{ width: "100%", maxWidth: 480, background: "#fff", borderRadius: "20px 20px 0 0", display: "flex", flexDirection: "column", height: "70vh", maxHeight: 560 }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderBottom: "0.5px solid #E4EAFB", flexShrink: 0 }}>
           <div style={{ width: 38, height: 38, borderRadius: "50%", background: "linear-gradient(135deg,#1B4FD8,#2563EB)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0, fontFamily: "'Playfair Display', serif" }}>
             {initials}
@@ -446,7 +401,6 @@ function ChatModal({ jobId, workerName, onClose }: {
           <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: "50%", background: "#F8FAFF", border: "0.5px solid #E4EAFB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#4A5878", cursor: "pointer", fontFamily: "inherit" }}>✕</button>
         </div>
 
-        {/* Messages */}
         <div style={{ flex: 1, overflowY: "auto", padding: "14px", display: "flex", flexDirection: "column", gap: 10 }}>
           {messages.length === 0 && (
             <div style={{ textAlign: "center", paddingTop: 32 }}>
@@ -466,7 +420,7 @@ function ChatModal({ jobId, workerName, onClose }: {
                   <div style={{ padding: "10px 12px", borderRadius: isMe ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: isMe ? "#1B4FD8" : "#F1F5FE", color: isMe ? "#fff" : "#0D1F3C", fontSize: 13, lineHeight: 1.5 }}>
                     {msg.content}
                   </div>
-                  <p style={{ fontSize: 9, color: "#94A3C0", marginTop: 3, textAlign: isMe ? "right" : "left", paddingLeft: isMe ? 0 : 4, paddingRight: isMe ? 4 : 0 }}>
+                  <p style={{ fontSize: 9, color: "#94A3C0", marginTop: 3, textAlign: isMe ? "right" : "left" }}>
                     {timeStr(msg.created_at)}{isMe ? " ✓✓" : ""}
                   </p>
                 </div>
@@ -476,7 +430,6 @@ function ChatModal({ jobId, workerName, onClose }: {
           <div ref={bottomRef} />
         </div>
 
-        {/* Input */}
         <div style={{ padding: "10px 12px", borderTop: "0.5px solid #E4EAFB", display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
           <div style={{ flex: 1, background: "#F8FAFF", border: "0.5px solid #E4EAFB", borderRadius: 22, padding: "9px 14px" }}>
             <textarea
@@ -503,12 +456,10 @@ function ChatModal({ jobId, workerName, onClose }: {
   );
 }
 
-export default function DashboardClient() {
+export default function OrdersClient() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [isVerified, setIsVerified] = useState(true);
   const [cancelling, setCancelling] = useState<string | null>(null);
 
   const load = async () => {
@@ -518,18 +469,12 @@ export default function DashboardClient() {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("full_name, is_verified, role")
+      .select("role")
       .eq("id", user.id)
       .single();
 
-    // Variant B: worker da /dashboard-a gire biler
-    // role yoxlaması silinib — worker redirect edilmir
     if (profile?.role === "admin") { router.push("/admin"); return; }
 
-    setProfile(profile);
-    setIsVerified(profile?.is_verified ?? false);
-
-    // Join olmadan ayrı query — browser client üçün daha etibarlı
     const { data: activeOrders } = await supabase
       .from("job_requests")
       .select("id, description, address, status, time_type, exact_datetime, urgency, created_at, category_id")
@@ -537,7 +482,6 @@ export default function DashboardClient() {
       .in("status", ["open", "in_progress"])
       .order("created_at", { ascending: false });
 
-    // Category ID-ləri topla və ayrıca çək
     const catIds = [...new Set((activeOrders ?? []).map((o: any) => o.category_id).filter(Boolean))];
     const { data: catsData } = catIds.length > 0
       ? await supabase.from("categories").select("id, name_az, icon").in("id", catIds)
@@ -545,36 +489,19 @@ export default function DashboardClient() {
     const catMap: Record<string, any> = {};
     (catsData ?? []).forEach((c: any) => { catMap[c.id] = c; });
 
-    // In-progress sifarişlər üçün qəbul edilmiş offer-i tap
-    const inProgressIds = (activeOrders ?? [])
-      .filter((o: any) => o.status === "in_progress")
-      .map((o: any) => o.id);
-
-    // Accepted offers
+    const inProgressIds = (activeOrders ?? []).filter((o: any) => o.status === "in_progress").map((o: any) => o.id);
     const { data: acceptedOffers } = inProgressIds.length > 0
-      ? await supabase
-          .from("offers")
-          .select("id, job_id, worker_id, price")
-          .in("job_id", inProgressIds)
-          .eq("status", "accepted")
+      ? await supabase.from("offers").select("id, job_id, worker_id, price").in("job_id", inProgressIds).eq("status", "accepted")
       : { data: [] };
 
-    // Worker profiles + names
     const workerIds = [...new Set((acceptedOffers ?? []).map((o: any) => o.worker_id))];
     const { data: workerProfiles } = workerIds.length > 0
-      ? await supabase
-          .from("worker_profiles")
-          .select("user_id, rating, review_count")
-          .in("user_id", workerIds)
+      ? await supabase.from("worker_profiles").select("user_id, rating, review_count").in("user_id", workerIds)
       : { data: [] };
     const { data: workerNames } = workerIds.length > 0
-      ? await supabase
-          .from("profiles")
-          .select("id, full_name")
-          .in("id", workerIds)
+      ? await supabase.from("profiles").select("id, full_name").in("id", workerIds)
       : { data: [] };
 
-    // Maps
     const wpMap: Record<string, any> = {};
     (workerProfiles ?? []).forEach((w: any) => { wpMap[w.user_id] = w; });
     const wnMap: Record<string, string> = {};
@@ -582,7 +509,6 @@ export default function DashboardClient() {
     const offerByJob: Record<string, any> = {};
     (acceptedOffers ?? []).forEach((o: any) => { offerByJob[o.job_id] = o; });
 
-    // Payment status for accepted offers
     const acceptedOfferIds = (acceptedOffers ?? []).map((o: any) => o.id);
     const { data: paymentsData } = acceptedOfferIds.length > 0
       ? await supabase.from("payments").select("offer_id, status").in("offer_id", acceptedOfferIds)
@@ -597,8 +523,6 @@ export default function DashboardClient() {
           .select("*", { count: "exact", head: true })
           .eq("job_id", order.id)
           .eq("status", "pending");
-
-        // Worker info for in_progress
         const acceptedOffer = offerByJob[order.id] ?? null;
         const worker = acceptedOffer ? {
           id: acceptedOffer.worker_id,
@@ -607,7 +531,6 @@ export default function DashboardClient() {
           reviewCount: wpMap[acceptedOffer.worker_id]?.review_count ?? 0,
           offerId: acceptedOffer.id,
         } : null;
-
         return {
           ...order,
           categories: catMap[order.category_id] ?? null,
@@ -618,7 +541,6 @@ export default function DashboardClient() {
       })
     );
 
-    // Prioritet: təklif var → usta axtarılır → aktiv
     const sorted = ordersWithOffers.sort((a, b) => {
       if (a.offerCount > 0 && b.offerCount === 0) return -1;
       if (a.offerCount === 0 && b.offerCount > 0) return 1;
@@ -636,39 +558,24 @@ export default function DashboardClient() {
     if (!confirm("Sifarişi ləğv etmək istədiyinizə əminsiniz?")) return;
     setCancelling(orderId);
     const supabase = createClient();
-
-    // Ləğv mərhələsini müəyyən et
     const order = orders.find(o => o.id === orderId);
-    const cancelReason = order
-      ? order.offerCount > 0
-        ? "offer_received"   // Təklif var idi, müştəri ləğv etdi
-        : "no_offers"        // Təklif gəlmədi, müştəri ləğv etdi
-      : "customer";
-
+    const cancelReason = order ? (order.offerCount > 0 ? "offer_received" : "no_offers") : "customer";
     await supabase
       .from("job_requests")
-      .update({
-        status: "cancelled",
-        cancelled_at: new Date().toISOString(),
-        cancel_reason: cancelReason,
-      })
+      .update({ status: "cancelled", cancelled_at: new Date().toISOString(), cancel_reason: cancelReason })
       .eq("id", orderId);
-
     await load();
     setCancelling(null);
   };
 
-  const firstName = profile?.full_name?.split(" ")[0] ?? "Salam";
-  const offerOrders = orders.filter(o => o.offerCount > 0);
+  const offerOrders     = orders.filter(o => o.offerCount > 0);
   const searchingOrders = orders.filter(o => o.offerCount === 0 && o.status === "open");
-  const activeOrders = orders.filter(o => o.status === "in_progress");
+  const activeOrders    = orders.filter(o => o.status === "in_progress");
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto px-5 py-6 space-y-4">
-        {[1, 2].map(i => (
-          <div key={i} className="h-[200px] bg-[var(--gray-100)] rounded-2xl animate-pulse" />
-        ))}
+      <div className="max-w-2xl mx-auto px-5 py-6 space-y-4">
+        {[1,2].map(i => <div key={i} className="h-[200px] bg-[var(--gray-100)] rounded-2xl animate-pulse" />)}
       </div>
     );
   }
@@ -697,60 +604,28 @@ export default function DashboardClient() {
 
       <div className="max-w-2xl mx-auto px-4 sm:px-5 py-6">
 
-        {/* ── Header ── */}
-        <div className="flex items-start justify-between mb-5">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
           <div>
-            <h1 className="font-serif text-[22px] sm:text-[24px] font-bold text-[var(--navy)]">
-              Salam, {firstName}! 👋
-            </h1>
-            <p className="text-[12px] text-[var(--gray-400)] mt-1">
-              {offerOrders.length > 0
-                ? `${offerOrders.length} sifarişinizə təklif gəldi`
-                : activeOrders.length > 0
-                ? `${activeOrders.length} aktiv sifarişiniz var`
-                : searchingOrders.length > 0
-                ? `${searchingOrders.length} sifariş usta gözləyir`
-                : "Aktiv sifariş yoxdur"}
+            <h1 className="font-serif text-[20px] font-bold text-[var(--navy)]">Sifarişlərim</h1>
+            <p className="text-[12px] text-[var(--gray-400)] mt-0.5">
+              {orders.length === 0 ? "Aktiv sifariş yoxdur" : `${orders.length} aktiv sifariş`}
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Link
-              href="/dashboard/history"
-              className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text-2)] hover:text-[var(--primary)] transition-colors px-3 py-2 rounded-xl hover:bg-[var(--primary-bg)]"
-            >
-              <span>🔄</span>
-              <span className="hidden sm:inline">Tarixçə</span>
-            </Link>
-            <Link
-              href="/request/new"
-              className="bg-[var(--primary)] text-white font-bold text-[12px] sm:text-[13px] px-4 py-2.5 rounded-xl hover:bg-[var(--primary-light)] transition-colors"
-            >
-              + Yeni Sifariş
-            </Link>
-          </div>
+          {/* Tarixçə — bildiriş solunda */}
+          <Link
+            href="/dashboard/history"
+            className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text-2)] hover:text-[var(--primary)] transition-colors px-3 py-2 rounded-xl hover:bg-[var(--primary-bg)]"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/>
+              <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+            Tarixçə
+          </Link>
         </div>
 
-        {/* ── Email xəbərdarlığı ── */}
-        {!isVerified && (
-          <div className="bg-[#FEF3C7] border border-[#FCD34D] rounded-xl px-4 py-3 flex items-center gap-3 mb-4">
-            <span>📧</span>
-            <p className="text-[12px] text-[#92400E] flex-1">Emailinizi təsdiqləyin — hesabınız tam aktiv deyil</p>
-            <button className="bg-[#F59E0B] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shrink-0">Emaili yoxla</button>
-          </div>
-        )}
-
-        {/* ── Worker banner ── */}
-        {profile?.role === "worker" && (
-          <div className="bg-[var(--primary-bg)] border border-[var(--primary-mid)] rounded-xl px-4 py-3 flex items-center gap-3 mb-4">
-            <span>🔧</span>
-            <p className="text-[12px] text-[var(--navy)] flex-1">Usta panelinizə keçmək istəyirsiniz?</p>
-            <a href="/worker/panel" className="bg-[var(--primary)] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shrink-0 hover:bg-[var(--primary-light)] transition-colors">
-              İş paneli →
-            </a>
-          </div>
-        )}
-
-        {/* ── Boş hal ── */}
+        {/* Boş hal */}
         {orders.length === 0 && (
           <div className="bg-white border border-[var(--border)] rounded-2xl p-10 text-center">
             <p className="text-4xl mb-4">📋</p>
@@ -762,26 +637,20 @@ export default function DashboardClient() {
           </div>
         )}
 
-        {/* ── 1. PRİORİTET: Təklif Gəldi ── */}
+        {/* 1. Təklif Gəldi */}
         {offerOrders.length > 0 && (
           <div className="mb-5">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[11px] font-bold text-[var(--navy)] uppercase tracking-wider flex items-center gap-2">
-                🔔 Təklif Gəldi
-              </p>
-              <span className="text-[10px] font-bold text-[var(--primary)] bg-[var(--primary-bg)] px-2.5 py-0.5 rounded-full">
-                {offerOrders.length}
-              </span>
+              <p className="text-[11px] font-bold text-[var(--navy)] uppercase tracking-wider">🔔 Təklif Gəldi</p>
+              <span className="text-[10px] font-bold text-[var(--primary)] bg-[var(--primary-bg)] px-2.5 py-0.5 rounded-full">{offerOrders.length}</span>
             </div>
             <div className="space-y-3">
-              {offerOrders.map(order => (
-                <OfferCard key={order.id} order={order} />
-              ))}
+              {offerOrders.map(order => <OfferCard key={order.id} order={order} />)}
             </div>
           </div>
         )}
 
-        {/* ── 2. PRİORİTET: Aktiv Sifariş ── */}
+        {/* 2. Aktiv Sifariş */}
         {activeOrders.length > 0 && (
           <div className="mb-5">
             <div className="flex items-center justify-between mb-3">
@@ -789,33 +658,23 @@ export default function DashboardClient() {
                 ✅ Aktiv Sifariş
                 <span className="text-[10px] font-bold text-[#10B981] normal-case tracking-normal animate-pulse">● Canlı</span>
               </p>
-              <span className="text-[10px] font-bold text-[#10B981] bg-[#D1FAE5] px-2.5 py-0.5 rounded-full">
-                {activeOrders.length}
-              </span>
+              <span className="text-[10px] font-bold text-[#10B981] bg-[#D1FAE5] px-2.5 py-0.5 rounded-full">{activeOrders.length}</span>
             </div>
             <div className="space-y-3">
-              {activeOrders.map(order => (
-                <TrackingCard key={order.id} order={order} onReload={load} />
-              ))}
+              {activeOrders.map(order => <TrackingCard key={order.id} order={order} onReload={load} />)}
             </div>
           </div>
         )}
 
-        {/* ── 3. PRİORİTET: Usta Axtarılır ── */}
+        {/* 3. Usta Axtarılır */}
         {searchingOrders.length > 0 && (
           <div className="mb-5">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[11px] font-bold text-[var(--navy)] uppercase tracking-wider">
-                🔍 Usta Axtarılır
-              </p>
-              <span className="text-[10px] font-bold text-[var(--text-3)] bg-[var(--gray-100)] px-2.5 py-0.5 rounded-full">
-                {searchingOrders.length}
-              </span>
+              <p className="text-[11px] font-bold text-[var(--navy)] uppercase tracking-wider">🔍 Usta Axtarılır</p>
+              <span className="text-[10px] font-bold text-[var(--text-3)] bg-[var(--gray-100)] px-2.5 py-0.5 rounded-full">{searchingOrders.length}</span>
             </div>
             <div className="space-y-3">
-              {searchingOrders.map(order => (
-                <SearchingCard key={order.id} order={order} onCancel={handleCancel} />
-              ))}
+              {searchingOrders.map(order => <SearchingCard key={order.id} order={order} onCancel={handleCancel} />)}
             </div>
           </div>
         )}
