@@ -171,11 +171,11 @@ const activeColors: Record<string, string> = {
 };
 
 const customerTabs = [
-  { key: "home",     href: "/dashboard",     label: "Əsas",       Icon: IcHome     },
-  { key: "orders",   href: "/orders",         label: "Sifarişlər", Icon: IcOrders   },
-  { key: "fab",      href: "/request/new",    label: "Sifariş ver" },
-  { key: "messages", href: "/messages",       label: "Mesajlar",   Icon: IcMessages },
-  { key: "profile",  href: "/profile",        label: "Profil",     Icon: IcUser     },
+  { key: "home",     href: "/dashboard",            label: "Əsas",       Icon: IcHome     },
+  { key: "orders",   href: "/dashboard?tab=orders", label: "Sifarişlər", Icon: IcOrders   },
+  { key: "fab",      href: "/request/new",           label: "Sifariş ver" },
+  { key: "messages", href: "/messages",              label: "Mesajlar",   Icon: IcMessages },
+  { key: "profile",  href: "/profile",               label: "Profil",     Icon: IcUser     },
 ];
 
 const workerTabs = [
@@ -196,7 +196,7 @@ export default function BottomNav({ variant, activeBadge = 0 }: BottomNavProps) 
     if (key === "fab")      return false;
     if (key === "profile")  return pathname === "/profile";
     if (key === "home")     return pathname === "/dashboard" && !currentTab;
-    if (key === "orders")   return pathname === "/orders" || (pathname === "/dashboard" && currentTab === "orders");
+    if (key === "orders")   return pathname === "/dashboard" && currentTab === "orders";
     if (key === "messages") return pathname === "/messages";
     if (key === "jobs")     return pathname === "/worker/panel" && !currentTab;
     if (key === "schedule") return pathname === "/worker/panel" && currentTab === "schedule";

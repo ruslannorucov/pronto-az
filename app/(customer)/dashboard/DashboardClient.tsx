@@ -604,7 +604,6 @@ export default function OrdersClient() {
 
       <div className="max-w-2xl mx-auto px-4 sm:px-5 py-6">
 
-        {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div>
             <h1 className="font-serif text-[20px] font-bold text-[var(--navy)]">Sifarişlərim</h1>
@@ -612,7 +611,6 @@ export default function OrdersClient() {
               {orders.length === 0 ? "Aktiv sifariş yoxdur" : `${orders.length} aktiv sifariş`}
             </p>
           </div>
-          {/* Tarixçə — bildiriş solunda */}
           <Link
             href="/dashboard/history"
             className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text-2)] hover:text-[var(--primary)] transition-colors px-3 py-2 rounded-xl hover:bg-[var(--primary-bg)]"
@@ -625,7 +623,6 @@ export default function OrdersClient() {
           </Link>
         </div>
 
-        {/* Boş hal */}
         {orders.length === 0 && (
           <div className="bg-white border border-[var(--border)] rounded-2xl p-10 text-center">
             <p className="text-4xl mb-4">📋</p>
@@ -637,7 +634,6 @@ export default function OrdersClient() {
           </div>
         )}
 
-        {/* 1. Təklif Gəldi */}
         {offerOrders.length > 0 && (
           <div className="mb-5">
             <div className="flex items-center justify-between mb-3">
@@ -650,7 +646,6 @@ export default function OrdersClient() {
           </div>
         )}
 
-        {/* 2. Aktiv Sifariş */}
         {activeOrders.length > 0 && (
           <div className="mb-5">
             <div className="flex items-center justify-between mb-3">
@@ -666,7 +661,6 @@ export default function OrdersClient() {
           </div>
         )}
 
-        {/* 3. Usta Axtarılır */}
         {searchingOrders.length > 0 && (
           <div className="mb-5">
             <div className="flex items-center justify-between mb-3">
