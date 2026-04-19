@@ -157,6 +157,7 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
   const [open, setOpen] = useState(true);
   const [showChat, setShowChat] = useState(false);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
+  const router = useRouter();
   const worker = order.worker;
   const paymentStatus = order.paymentStatus;
   const supabase = createClient();
@@ -234,13 +235,12 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
                   <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 1.5C4.4 1.5 1.5 4 1.5 7.1c0 1.1.3 2.2 1 3.1L1.5 14l3.4-1.2c.9.4 1.9.7 3.1.7 3.6 0 6.5-2.5 6.5-5.6C14.5 4 11.6 1.5 8 1.5z" stroke="#1B4FD8" strokeWidth="1.3"/></svg>
                   Chat
                 </button>
-                <Link
-                  href={`/workers/${worker.id}`}
-                  onClick={e => e.stopPropagation()}
-                  style={{ fontSize: 11, fontWeight: 600, color: "#4A5878", background: "#F8FAFF", border: "0.5px solid #E4EAFB", padding: "6px 12px", borderRadius: 9, textAlign: "center", textDecoration: "none", whiteSpace: "nowrap" }}
+                <button
+                  onClick={(e) => { e.stopPropagation(); router.push(`/workers/${worker.id}`); }}
+                  style={{ fontSize: 11, fontWeight: 600, color: "#4A5878", background: "#F8FAFF", border: "0.5px solid #E4EAFB", padding: "6px 12px", borderRadius: 9, textAlign: "center", whiteSpace: "nowrap", cursor: "pointer", fontFamily: "inherit" }}
                 >
                   Profil →
-                </Link>
+                </button>
               </div>
             </div>
           ) : (
