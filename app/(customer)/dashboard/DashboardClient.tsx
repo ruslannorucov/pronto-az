@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ChatModal, getInitials } from "@/components/ChatModal";
 
 type Order = {
   id: string;
@@ -150,10 +151,6 @@ function OfferCard({ order }: { order: Order }) {
       </div>
     </Link>
   );
-}
-
-function getInitials(name: string) {
-  return name.trim().split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase();
 }
 
 function TrackingCard({ order, onReload }: { order: Order; onReload: () => void }) {
@@ -317,154 +314,15 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
   );
 }
 
-function ChatModal({ jobId, workerName, onClose }: {
-  jobId: string;
-  offerId: string;
-  workerName: string;
-  onClose: () => void;
-}) {
-  const [messages, setMessages] = useState<any[]>([]);
-  const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const supabase = createClient();
-
-  useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) setUserId(user.id);
-      const { data } = await supabase
-        .from("messages")
-        .select("id, sender_id, content, created_at")
-        .eq("job_id", jobId)
-        .order("created_at", { ascending: true });
-      setMessages(data ?? []);
-      if (user) {
-        await supabase
-          .from("messages")
-          .update({ read_at: new Date().toISOString() })
-          .eq("job_id", jobId)
-          .neq("sender_id", user.id)
-          .is("read_at", null);
-      }
-    };
-    init();
-    const channel = supabase
-      .channel(`chat-${jobId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `job_id=eq.${jobId}` },
-        (payload) => {
-          setMessages(prev => [...prev, payload.new]);
-          setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
-        })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [jobId]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const sendMessage = async () => {
-    if (!text.trim() || !userId || sending) return;
-    setSending(true);
-    const msg = text.trim();
-    setText("");
-    await supabase.from("messages").insert({ job_id: jobId, sender_id: userId, content: msg });
-    setSending(false);
-  };
-
-  function timeStr(d: string) {
-    const dt = new Date(d);
-    return `${String(dt.getHours()).padStart(2,"0")}:${String(dt.getMinutes()).padStart(2,"0")}`;
-  }
-
-  const initials = getInitials(workerName);
-
-  return (
-    <div
-      style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center", background: "rgba(13,31,60,0.5)", backdropFilter: "blur(4px)" }}
-      onClick={onClose}
-    >
-      <div
-        style={{ width: "100%", maxWidth: 480, background: "#fff", borderRadius: "20px 20px 0 0", display: "flex", flexDirection: "column", height: "70vh", maxHeight: 560 }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderBottom: "0.5px solid #E4EAFB", flexShrink: 0 }}>
-          <div style={{ width: 38, height: 38, borderRadius: "50%", background: "linear-gradient(135deg,#1B4FD8,#2563EB)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0, fontFamily: "'Playfair Display', serif" }}>
-            {initials}
-          </div>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: "#0D1F3C" }}>{workerName}</p>
-            <p style={{ fontSize: 10, color: "#10B981", marginTop: 1 }}>● Aktiv sifariş · Yolda</p>
-          </div>
-          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: "50%", background: "#F8FAFF", border: "0.5px solid #E4EAFB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#4A5878", cursor: "pointer", fontFamily: "inherit" }}>✕</button>
-        </div>
-
-        <div style={{ flex: 1, overflowY: "auto", padding: "14px", display: "flex", flexDirection: "column", gap: 10 }}>
-          {messages.length === 0 && (
-            <div style={{ textAlign: "center", paddingTop: 32 }}>
-              <p style={{ fontSize: 12, color: "#94A3C0" }}>Söhbəti başladın 👋</p>
-            </div>
-          )}
-          {messages.map((msg) => {
-            const isMe = msg.sender_id === userId;
-            return (
-              <div key={msg.id} style={{ display: "flex", justifyContent: isMe ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 8 }}>
-                {!isMe && (
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#1B4FD8,#2563EB)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff", flexShrink: 0, fontFamily: "'Playfair Display', serif" }}>
-                    {initials}
-                  </div>
-                )}
-                <div style={{ maxWidth: "72%" }}>
-                  <div style={{ padding: "10px 12px", borderRadius: isMe ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: isMe ? "#1B4FD8" : "#F1F5FE", color: isMe ? "#fff" : "#0D1F3C", fontSize: 13, lineHeight: 1.5 }}>
-                    {msg.content}
-                  </div>
-                  <p style={{ fontSize: 9, color: "#94A3C0", marginTop: 3, textAlign: isMe ? "right" : "left" }}>
-                    {timeStr(msg.created_at)}{isMe ? " ✓✓" : ""}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-          <div ref={bottomRef} />
-        </div>
-
-        <div style={{ padding: "10px 12px", borderTop: "0.5px solid #E4EAFB", display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-          <div style={{ flex: 1, background: "#F8FAFF", border: "0.5px solid #E4EAFB", borderRadius: 22, padding: "9px 14px" }}>
-            <textarea
-              value={text}
-              onChange={e => setText(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-              placeholder="Mesaj yazın..."
-              rows={1}
-              style={{ width: "100%", background: "transparent", border: "none", outline: "none", fontSize: 13, color: "#0D1F3C", resize: "none", maxHeight: 80, fontFamily: "inherit" }}
-            />
-          </div>
-          <button
-            onClick={sendMessage}
-            disabled={!text.trim() || sending}
-            style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#1B4FD8,#2563EB)", display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer", flexShrink: 0, opacity: !text.trim() || sending ? 0.4 : 1, transition: "opacity 0.15s" }}
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <path d="M14 8L2 2l2 6-2 6 12-6z" fill="white"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function OrdersClient() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [cancelling, setCancelling] = useState<string | null>(null);
 
   const load = async () => {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) { router.push("/login"); return; }
 
     const { data: profile } = await supabase
@@ -556,7 +414,6 @@ export default function OrdersClient() {
 
   const handleCancel = async (orderId: string) => {
     if (!confirm("Sifarişi ləğv etmək istədiyinizə əminsiniz?")) return;
-    setCancelling(orderId);
     const supabase = createClient();
     const order = orders.find(o => o.id === orderId);
     const cancelReason = order ? (order.offerCount > 0 ? "offer_received" : "no_offers") : "customer";
@@ -565,7 +422,6 @@ export default function OrdersClient() {
       .update({ status: "cancelled", cancelled_at: new Date().toISOString(), cancel_reason: cancelReason })
       .eq("id", orderId);
     await load();
-    setCancelling(null);
   };
 
   const offerOrders     = orders.filter(o => o.offerCount > 0);
@@ -603,7 +459,6 @@ export default function OrdersClient() {
       `}</style>
 
       <div className="max-w-2xl mx-auto px-4 sm:px-5 py-6">
-
         <div className="flex items-center justify-between mb-5">
           <div>
             <h1 className="font-serif text-[20px] font-bold text-[var(--navy)]">Sifarişlərim</h1>
@@ -672,7 +527,6 @@ export default function OrdersClient() {
             </div>
           </div>
         )}
-
       </div>
     </>
   );

@@ -36,7 +36,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      // getUser() əvəzinə getSession() — lokaldan oxuyur, lock yaratmır
+      const { data: { session } } = await supabase.auth.getSession();
+      const authUser = session?.user;
       if (!authUser) { setChecked(true); return; }
 
       const { data: profile } = await supabase
@@ -45,10 +47,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         .eq("id", authUser.id)
         .single();
 
-      // Admin və ya profile yoxdursa shell göstərmə
       if (!profile || profile.role === "admin") { setChecked(true); return; }
 
-      // Yalnız customer və worker üçün davam et
       const validRole = profile.role === "worker" ? "worker" : "customer";
 
       const parts = (profile.full_name ?? "").trim().split(" ");
@@ -87,6 +87,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
       if (!session) { setUser(null); setChecked(true); }
+      else load(); // session dəyişdikdə yenidən yüklə
     });
     return () => listener.subscription.unsubscribe();
   }, [pathname]);

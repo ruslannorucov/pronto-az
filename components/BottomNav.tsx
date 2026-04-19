@@ -6,10 +6,8 @@ import Link from "next/link";
 type NavVariant = "customer" | "worker";
 interface BottomNavProps {
   variant: NavVariant;
-  activeBadge?: number; // unread messages count
+  activeBadge?: number;
 }
-
-// ── Rəngli ikonlar ─────────────────────────────────────────────────────────────
 
 function IcHome({ active }: { active: boolean }) {
   return active ? (
@@ -159,11 +157,10 @@ function IcUser({ active }: { active: boolean }) {
   );
 }
 
-// ── Tab label rəngləri (aktiv halda) ──────────────────────────────────────────
 const activeColors: Record<string, string> = {
   home:     "#3B82F6",
   orders:   "#7C3AED",
-  messages: "#10B981",
+  chats:    "#10B981",
   jobs:     "#059669",
   schedule: "#F59E0B",
   earnings: "#1B4FD8",
@@ -171,19 +168,19 @@ const activeColors: Record<string, string> = {
 };
 
 const customerTabs = [
-  { key: "home",     href: "/dashboard",            label: "Əsas",       Icon: IcHome     },
-  { key: "orders",   href: "/dashboard?tab=orders", label: "Sifarişlər", Icon: IcOrders   },
-  { key: "fab",      href: "/request/new",           label: "Sifariş ver" },
-  { key: "messages", href: "/messages",              label: "Mesajlar",   Icon: IcMessages },
-  { key: "profile",  href: "/profile",               label: "Profil",     Icon: IcUser     },
+  { key: "home",    href: "/dashboard",            label: "Əsas",    Icon: IcHome     },
+  { key: "orders",  href: "/dashboard?tab=orders", label: "Sifarişlər", Icon: IcOrders },
+  { key: "fab",     href: "/request/new",           label: "Sifariş ver" },
+  { key: "chats",   href: "/chats",                 label: "Mesajlar", Icon: IcMessages },
+  { key: "profile", href: "/profile",               label: "Profil",  Icon: IcUser     },
 ];
 
 const workerTabs = [
-  { key: "jobs",     href: "/worker/panel",                    label: "İşlər",   Icon: IcJobs     },
-  { key: "schedule", href: "/worker/panel?tab=schedule",       label: "Cədvəl",  Icon: IcSchedule },
-  { key: "fab",      href: "/worker/panel",                    label: "Yeni iş"  },
-  { key: "earnings", href: "/worker/panel?tab=earnings",       label: "Qazanc",  Icon: IcEarnings },
-  { key: "profile",  href: "/profile",                         label: "Profil",  Icon: IcUser     },
+  { key: "jobs",     href: "/worker/panel",              label: "İşlər",  Icon: IcJobs     },
+  { key: "schedule", href: "/worker/panel?tab=schedule", label: "Cədvəl", Icon: IcSchedule },
+  { key: "fab",      href: "/worker/panel",              label: "Yeni iş" },
+  { key: "earnings", href: "/worker/panel?tab=earnings", label: "Qazanc", Icon: IcEarnings },
+  { key: "profile",  href: "/profile",                   label: "Profil", Icon: IcUser     },
 ];
 
 export default function BottomNav({ variant, activeBadge = 0 }: BottomNavProps) {
@@ -197,7 +194,7 @@ export default function BottomNav({ variant, activeBadge = 0 }: BottomNavProps) 
     if (key === "profile")  return pathname === "/profile";
     if (key === "home")     return pathname === "/dashboard" && !currentTab;
     if (key === "orders")   return pathname === "/dashboard" && currentTab === "orders";
-    if (key === "messages") return pathname === "/messages";
+    if (key === "chats")    return pathname === "/chats";
     if (key === "jobs")     return pathname === "/worker/panel" && !currentTab;
     if (key === "schedule") return pathname === "/worker/panel" && currentTab === "schedule";
     if (key === "earnings") return pathname === "/worker/panel" && currentTab === "earnings";
@@ -215,7 +212,6 @@ export default function BottomNav({ variant, activeBadge = 0 }: BottomNavProps) 
         .bnav-fab:active  { transform: scale(0.90) translateY(-1px) !important; }
       `}</style>
 
-      {/* Spacer */}
       <div style={{ height: "82px" }} />
 
       <nav style={{
@@ -232,10 +228,9 @@ export default function BottomNav({ variant, activeBadge = 0 }: BottomNavProps) 
       }}>
         {tabs.map((tab) => {
           const active     = isActive(tab.key);
-          const showBadge  = tab.key === "messages" && activeBadge > 0;
+          const showBadge  = tab.key === "chats" && activeBadge > 0;
           const labelColor = active ? (activeColors[tab.key] ?? "#1B4FD8") : "#9BABB8";
 
-          // ── FAB ──
           if (!tab.Icon) {
             return (
               <Link key={tab.key} href={tab.href}
@@ -272,20 +267,14 @@ export default function BottomNav({ variant, activeBadge = 0 }: BottomNavProps) 
                 gap: "5px", flex: 1, textDecoration: "none",
                 padding: "8px 2px 4px", position: "relative",
               }}>
-
-              {/* Aktiv: rəngli pill */}
               <div style={{
                 width: "46px", height: "34px", borderRadius: "14px",
-                background: active
-                  ? `${activeColors[tab.key] ?? "#1B4FD8"}18`
-                  : "transparent",
+                background: active ? `${activeColors[tab.key] ?? "#1B4FD8"}18` : "transparent",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 position: "relative",
                 transition: "background 0.2s",
               }}>
                 <IconComp active={active} />
-
-                {/* Oxunmamış mesaj badge */}
                 {showBadge && (
                   <span style={{
                     position: "absolute", top: "-2px", right: "0px",
@@ -299,7 +288,6 @@ export default function BottomNav({ variant, activeBadge = 0 }: BottomNavProps) 
                   </span>
                 )}
               </div>
-
               <span style={{
                 fontSize: "10px", lineHeight: 1,
                 color: labelColor,
