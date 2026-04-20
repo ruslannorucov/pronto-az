@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import dynamic from "next/dynamic";
 
@@ -47,15 +48,15 @@ for (let h = 8; h <= 20; h++) {
 }
 
 const URGENCY_OPTIONS = [
-  { value: "today", label: "Bu gün", icon: "⚡" },
-  { value: "this_week", label: "Bu həftə", icon: "📅" },
-  { value: "flexible", label: "Çevik", icon: "🔄" },
+  { value: "today",     label: "Bu gün",    icon: "⚡" },
+  { value: "this_week", label: "Bu həftə",  icon: "📅" },
+  { value: "flexible",  label: "Çevik",     icon: "🔄" },
 ];
 
 const PREFERRED_TIMES = [
-  { value: "09:00–12:00", label: "Səhər", sub: "09:00–12:00", icon: "🌅" },
+  { value: "09:00–12:00", label: "Səhər",  sub: "09:00–12:00", icon: "🌅" },
   { value: "12:00–18:00", label: "Gündüz", sub: "12:00–18:00", icon: "☀️" },
-  { value: "18:00–21:00", label: "Axşam", sub: "18:00–21:00", icon: "🌆" },
+  { value: "18:00–21:00", label: "Axşam",  sub: "18:00–21:00", icon: "🌆" },
 ];
 
 const STEP_TITLES = [
@@ -66,24 +67,18 @@ const STEP_TITLES = [
 ];
 
 const AZ_MONTHS = [
-  "Yanvar", "Fevral", "Mart", "Aprel", "May", "İyun",
-  "İyul", "Avqust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr",
+  "Yanvar","Fevral","Mart","Aprel","May","İyun",
+  "İyul","Avqust","Sentyabr","Oktyabr","Noyabr","Dekabr",
 ];
-const AZ_DAYS = ["B.e", "Ç.a", "Çər", "C.a", "Cüm", "Şən", "Baz"];
+const AZ_DAYS = ["B.e","Ç.a","Çər","C.a","Cüm","Şən","Baz"];
 
-function MiniCalendar({
-  value,
-  onChange,
-}: {
-  value: Date | null;
-  onChange: (d: Date) => void;
-}) {
+function MiniCalendar({ value, onChange }: { value: Date | null; onChange: (d: Date) => void }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewYear,  setViewYear]  = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
 
-  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+  const firstDay    = new Date(viewYear, viewMonth, 1).getDay();
   const startOffset = (firstDay + 6) % 7;
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
 
@@ -109,7 +104,7 @@ function MiniCalendar({
         <button onClick={nextMonth} className="w-8 h-8 rounded-full hover:bg-[var(--gray-100)] flex items-center justify-center text-[var(--navy)] transition-colors">›</button>
       </div>
       <div className="grid grid-cols-7 mb-1">
-        {AZ_DAYS.map((d) => (
+        {AZ_DAYS.map(d => (
           <div key={d} className="text-center text-[10px] font-bold text-[var(--gray-400)] py-1">{d}</div>
         ))}
       </div>
@@ -118,9 +113,9 @@ function MiniCalendar({
           if (!day) return <div key={i} />;
           const date = new Date(viewYear, viewMonth, day);
           date.setHours(0, 0, 0, 0);
-          const isPast = date < today;
-          const isSelected = value && value.getFullYear() === viewYear && value.getMonth() === viewMonth && value.getDate() === day;
-          const isToday = today.getFullYear() === viewYear && today.getMonth() === viewMonth && today.getDate() === day;
+          const isPast       = date < today;
+          const isSelected   = value && value.getFullYear() === viewYear && value.getMonth() === viewMonth && value.getDate() === day;
+          const isToday      = today.getFullYear() === viewYear && today.getMonth() === viewMonth && today.getDate() === day;
           return (
             <button
               key={i}
@@ -143,31 +138,39 @@ function MiniCalendar({
   );
 }
 
-export default function NewRequestPage() {
-  const [step, setStep] = useState(1);
+// ─── Inner component (useSearchParams buradadır) ──────────────────────────────
+
+function NewRequestInner() {
+  const searchParams = useSearchParams();
+  const presetCategoryId = searchParams.get("category") ?? "";
+  const presetWorkerId   = searchParams.get("worker_id") ?? "";
+
+  const [step,       setStep]       = useState(presetCategoryId ? 2 : 1);
   const [categories, setCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading,    setLoading]    = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
+  const [dragOver,   setDragOver]   = useState(false);
+  const [workerName, setWorkerName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<FormData>({
-    categoryId: "",
+    categoryId:    presetCategoryId,
     subCategoryId: "",
-    description: "",
-    media: [],
-    address: "",
-    apartment: "",
-    timeType: "",
-    exactDate: null,
-    exactTime: "",
-    urgency: "",
+    description:   "",
+    media:         [],
+    address:       "",
+    apartment:     "",
+    timeType:      "",
+    exactDate:     null,
+    exactTime:     "",
+    urgency:       "",
     preferredTime: "",
-    lat: null,
-    lng: null,
+    lat:           null,
+    lng:           null,
   });
 
+  // Kateqoriyaları yüklə
   useEffect(() => {
     const fetchCategories = async () => {
       const supabase = createClient();
@@ -182,6 +185,7 @@ export default function NewRequestPage() {
     fetchCategories();
   }, []);
 
+  // Alt kateqoriyaları yüklə
   useEffect(() => {
     if (!form.categoryId) { setSubCategories([]); return; }
     const fetchSubs = async () => {
@@ -195,6 +199,21 @@ export default function NewRequestPage() {
     };
     fetchSubs();
   }, [form.categoryId]);
+
+  // Worker adını yüklə (worker_id varsa)
+  useEffect(() => {
+    if (!presetWorkerId) return;
+    const fetchWorker = async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", presetWorkerId)
+        .single();
+      setWorkerName(data?.full_name ?? null);
+    };
+    fetchWorker();
+  }, [presetWorkerId]);
 
   const addMedia = (files: FileList | null) => {
     if (!files) return;
@@ -214,12 +233,11 @@ export default function NewRequestPage() {
     setForm(p => ({ ...p, media: p.media.filter((_, idx) => idx !== i) }));
   };
 
-  // FIX 1: subCategoryId is optional — only categoryId is required
   const step1Valid = !!form.categoryId;
   const step2Valid = form.description.trim().length >= 10;
   const step3Valid = (() => {
     if (!form.address.trim() || !form.timeType) return false;
-    if (form.timeType === "exact") return !!form.exactDate && !!form.exactTime;
+    if (form.timeType === "exact")    return !!form.exactDate && !!form.exactTime;
     if (form.timeType === "flexible") return !!form.urgency && !!form.preferredTime;
     return false;
   })();
@@ -239,23 +257,27 @@ export default function NewRequestPage() {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { window.location.href = "/login"; return; }
+
         const exactDatetime = form.timeType === "exact" && form.exactDate && form.exactTime
           ? new Date(`${form.exactDate.toISOString().split("T")[0]}T${form.exactTime}:00`).toISOString()
           : null;
+
         const { error } = await supabase.from("job_requests").insert({
-          customer_id: user.id,
-          category_id: form.categoryId,
+          customer_id:     user.id,
+          category_id:     form.categoryId,
           sub_category_id: form.subCategoryId || null,
-          description: form.description,
-          address: form.address,
-          location_lat: form.lat,
-          location_lng: form.lng,
-          time_type: form.timeType,
-          exact_datetime: exactDatetime,
-          urgency: form.timeType === "flexible" ? form.urgency : null,
-          preferred_time: form.timeType === "flexible" ? form.preferredTime : null,
-          status: "open",
+          description:     form.description,
+          address:         form.address,
+          location_lat:    form.lat,
+          location_lng:    form.lng,
+          time_type:       form.timeType,
+          exact_datetime:  exactDatetime,
+          urgency:         form.timeType === "flexible" ? form.urgency : null,
+          preferred_time:  form.timeType === "flexible" ? form.preferredTime : null,
+          preferred_worker_id: presetWorkerId || null,
+          status:          "open",
         });
+
         if (!error) setStep(4);
       } catch (e) {
         console.error(e);
@@ -265,21 +287,28 @@ export default function NewRequestPage() {
     }
   };
 
+  // Seçilmiş kateqoriya adını tap
+  const selectedCategory = categories.find(c => c.id === form.categoryId);
+
   return (
     <div className="min-h-screen bg-[var(--gray-50)] flex flex-col max-w-lg mx-auto relative">
       <style>{`
         @keyframes bounce-dot {
           0%, 100% { transform: translateY(0); opacity: 0.4; }
-          50% { transform: translateY(-5px); opacity: 1; }
+          50%       { transform: translateY(-5px); opacity: 1; }
         }
         @keyframes pulse-out {
-          0% { transform: scale(0.8); opacity: 1; }
+          0%   { transform: scale(0.8); opacity: 1; }
           100% { transform: scale(1.5); opacity: 0; }
         }
         @keyframes progress-pulse {
-          0% { width: 20%; margin-left: 0; }
-          50% { width: 40%; }
+          0%   { width: 20%; margin-left: 0; }
+          50%  { width: 40%; }
           100% { width: 20%; margin-left: 80%; }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
 
@@ -326,11 +355,12 @@ export default function NewRequestPage() {
       {/* ── Content ── */}
       <div className="flex-1 overflow-y-auto pb-6 px-5 pt-6">
 
-        {/* ────── ADDIM 1 ────── */}
+        {/* ────── ADDIM 1 — Kateqoriya ────── */}
         {step === 1 && (
           <div>
             <h2 className="text-[22px] font-bold text-[var(--navy)] mb-1 leading-tight">Xidmət növü seçin</h2>
             <p className="text-[14px] text-[var(--gray-400)] mb-6">Probleminizə uyğun kateqoriyanı seçin</p>
+
             {loading ? (
               <div className="grid grid-cols-3 gap-3">
                 {[...Array(6)].map((_, i) => (
@@ -342,7 +372,11 @@ export default function NewRequestPage() {
                 {categories.map((cat) => (
                   <button
                     key={cat.id}
-                    onClick={() => setForm(p => ({ ...p, categoryId: cat.id, subCategoryId: "" }))}
+                    onClick={() => {
+                      setForm(p => ({ ...p, categoryId: cat.id, subCategoryId: "" }));
+                      // Kateqoriya seçilən kimi birbaşa Step 2-yə keç
+                      setStep(2);
+                    }}
                     className={`
                       relative rounded-2xl py-4 px-3 text-center border-[1.5px]
                       transition-all duration-200 active:scale-95
@@ -365,11 +399,55 @@ export default function NewRequestPage() {
                 ))}
               </div>
             )}
-            {form.categoryId && subCategories.length > 0 && (
-              <div className="mt-6">
-                <div className="flex items-center gap-3 mb-4">
+          </div>
+        )}
+
+        {/* ────── ADDIM 2 — Problem ────── */}
+        {step === 2 && (
+          <div>
+            <h2 className="text-[22px] font-bold text-[var(--navy)] mb-1 leading-tight">Problemi izah edin</h2>
+            <p className="text-[14px] text-[var(--gray-400)] mb-4">Nə baş verdiyini qısaca yazın</p>
+
+            {/* Seçilmiş kateqoriya pill-i */}
+            {selectedCategory && (
+              <div
+                className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl border border-[var(--primary-mid)] bg-[var(--primary-bg)]"
+                style={{ animation: "fadeIn 0.25s ease", display: "inline-flex" }}
+              >
+                <span className="text-base">{selectedCategory.icon}</span>
+                <span className="text-[12px] font-700 text-[var(--primary)] font-bold">{selectedCategory.name_az}</span>
+                <button
+                  onClick={() => { setForm(p => ({ ...p, categoryId: "", subCategoryId: "" })); setStep(1); }}
+                  className="ml-1 text-[var(--primary)] text-[14px] font-bold leading-none hover:text-red-500 transition-colors"
+                  title="Kateqoriyanı dəyiş"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            {/* Worker banneri (worker_id varsa) */}
+            {presetWorkerId && workerName && (
+              <div
+                className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl border border-[#A7F3D0] bg-[#F0FDF4]"
+                style={{ animation: "fadeIn 0.25s ease" }}
+              >
+                <span className="text-base">👷</span>
+                <div className="flex-1">
+                  <p className="text-[11px] font-bold text-[#065F46]">Seçilmiş usta</p>
+                  <p className="text-[12px] text-[#059669] font-semibold">{workerName}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Alt kateqoriya (varsa) */}
+            {subCategories.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="h-px flex-1 bg-[var(--gray-200)]" />
-                  <p className="text-[11px] font-bold text-[var(--gray-400)] uppercase tracking-wider">Alt kateqoriya <span className="font-normal normal-case">(ixtiyari)</span></p>
+                  <p className="text-[11px] font-bold text-[var(--gray-400)] uppercase tracking-wider">
+                    Alt kateqoriya <span className="font-normal normal-case">(ixtiyari)</span>
+                  </p>
                   <div className="h-px flex-1 bg-[var(--gray-200)]" />
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -392,14 +470,7 @@ export default function NewRequestPage() {
                 </div>
               </div>
             )}
-          </div>
-        )}
 
-        {/* ────── ADDIM 2 ────── */}
-        {step === 2 && (
-          <div>
-            <h2 className="text-[22px] font-bold text-[var(--navy)] mb-1 leading-tight">Problemi izah edin</h2>
-            <p className="text-[14px] text-[var(--gray-400)] mb-6">Nə baş verdiyini qısaca yazın</p>
             <div className="relative">
               <textarea
                 value={form.description}
@@ -412,6 +483,7 @@ export default function NewRequestPage() {
                 {form.description.length >= 10 ? "✓ Kifayət qədər" : `Minimum 10 simvol (${form.description.length}/10)`}
               </p>
             </div>
+
             <div className="mt-5">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-[13px] font-bold text-[var(--navy)]">Şəkil / Video</p>
@@ -476,7 +548,7 @@ export default function NewRequestPage() {
           </div>
         )}
 
-        {/* ────── ADDIM 3 ────── */}
+        {/* ────── ADDIM 3 — Ünvan & Vaxt ────── */}
         {step === 3 && (
           <div>
             <h2 className="text-[22px] font-bold text-[var(--navy)] mb-1 leading-tight">Harada, nə vaxt?</h2>
@@ -510,8 +582,8 @@ export default function NewRequestPage() {
             <p className="text-[11px] font-bold text-[var(--gray-400)] uppercase tracking-wider mb-3">Vaxt növü</p>
             <div className="grid grid-cols-2 gap-3 mb-4">
               {[
-                { value: "exact", icon: "🎯", title: "Dəqiq vaxt", sub: "Tarix və saat seç" },
-                { value: "flexible", icon: "🔄", title: "Çevik vaxt", sub: "Təxmini zaman bil" },
+                { value: "exact",    icon: "🎯", title: "Dəqiq vaxt",  sub: "Tarix və saat seç"   },
+                { value: "flexible", icon: "🔄", title: "Çevik vaxt",  sub: "Təxmini zaman bil"   },
               ].map((opt) => (
                 <button
                   key={opt.value}
@@ -646,7 +718,10 @@ export default function NewRequestPage() {
                 ))}
               </div>
               <p className="text-[13px] text-white/70 z-10 text-center font-medium">
-                Ustalar sifarişinizi görür...
+                {presetWorkerId && workerName
+                  ? `${workerName} sifarişinizi görür...`
+                  : "Ustalar sifarişinizi görür..."
+                }
               </p>
             </div>
 
@@ -681,6 +756,12 @@ export default function NewRequestPage() {
                       : "Çevik"}
                   </p>
                 </div>
+                {presetWorkerId && workerName && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px]">👷</span>
+                    <p className="text-[12px] text-[var(--navy)]">{workerName}</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -694,10 +775,12 @@ export default function NewRequestPage() {
         )}
       </div>
 
-      {/* ── Sticky CTA ── sticky inside flex column, always visible at bottom */}
-      {step < 4 && (
-        <div className="sticky bottom-0 left-0 right-0 px-5 py-4 bg-white/90 backdrop-blur-md border-t border-[var(--gray-200)]"
-             style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}>
+      {/* ── Sticky CTA ── */}
+      {step < 4 && step > 1 && (
+        <div
+          className="sticky bottom-0 left-0 right-0 px-5 py-4 bg-white/90 backdrop-blur-md border-t border-[var(--gray-200)]"
+          style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
+        >
           <button
             onClick={handleNext}
             disabled={!canProceed() || submitting}
@@ -714,5 +797,20 @@ export default function NewRequestPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// ─── Export (Suspense ilə wrapped — useSearchParams tələbi) ──────────────────
+
+export default function NewRequestPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[var(--gray-50)] flex items-center justify-center">
+        <div style={{ width: 32, height: 32, border: "3px solid #E4EAFB", borderTopColor: "#1B4FD8", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    }>
+      <NewRequestInner />
+    </Suspense>
   );
 }
