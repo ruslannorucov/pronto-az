@@ -23,12 +23,10 @@ type Order = {
     rating: number;
     reviewCount: number;
     offerId: string;
-    isEnRoute: boolean; // ← yeni sahə
+    isEnRoute: boolean;
   } | null;
   paymentStatus: string | null;
 };
-
-// ─── Toast ────────────────────────────────────────────────────────────────────
 
 type ToastType = "success" | "error";
 
@@ -51,8 +49,6 @@ function Toast({ msg, type }: { msg: string; type: ToastType }) {
     </div>
   );
 }
-
-// ─── Ləğv Modalı ──────────────────────────────────────────────────────────────
 
 function CancelModal({
   order, onConfirm, onClose, loading,
@@ -112,8 +108,6 @@ function CancelModal({
   );
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function formatTime(order: Order): string {
   if (order.time_type === "exact" && order.exact_datetime) {
     const d = new Date(order.exact_datetime);
@@ -129,35 +123,23 @@ function formatId(id: string): string {
   return "#PRN-" + id.slice(0, 4).toUpperCase();
 }
 
-// ─── Step hesablama funksiyası ─────────────────────────────────────────────────
-//
-// DB vəziyyəti → step progress:
-//   payment yoxdur       → Qəbul✓  Ödəniş(active)  Yolda    Gəldi    Bitdi
-//   payment=held         → Qəbul✓  Ödəniş✓         Yolda(active) Gəldi Bitdi
-//   is_en_route=true     → Qəbul✓  Ödəniş✓         Yolda✓   Gəldi(active) Bitdi
-//   status=done          → Qəbul✓  Ödəniş✓         Yolda✓   Gəldi✓   Bitdi✓
-
 function buildSteps(paymentStatus: string | null, isEnRoute: boolean) {
   const paid    = paymentStatus === "held" || paymentStatus === "released";
   const enRoute = isEnRoute;
-
   return [
-    { label: "Qəbul",  done: true,      active: false                  },
-    { label: "Ödəniş", done: paid,      active: !paid                  },
-    { label: "Yolda",  done: enRoute,   active: paid && !enRoute       },
-    { label: "Gəldi",  done: false,     active: enRoute                },
-    { label: "Bitdi",  done: false,     active: false                  },
+    { label: "Qəbul",  done: true,      active: false             },
+    { label: "Ödəniş", done: paid,      active: !paid             },
+    { label: "Yolda",  done: enRoute,   active: paid && !enRoute  },
+    { label: "Gəldi",  done: false,     active: enRoute           },
+    { label: "Bitdi",  done: false,     active: false             },
   ];
 }
 
-// Header badge mətni
 function statusBadge(paymentStatus: string | null, isEnRoute: boolean): { text: string; color: string; bg: string } {
-  if (isEnRoute)                   return { text: "Yolda 🚶",    color: "#059669", bg: "#D1FAE5" };
-  if (paymentStatus === "held")    return { text: "Yola düşür",  color: "#1B4FD8", bg: "#EFF4FF" };
-  return                                  { text: "Gözlənilir", color: "#D97706", bg: "#FEF3C7" };
+  if (isEnRoute)                return { text: "Yolda 🚶",   color: "#059669", bg: "#D1FAE5" };
+  if (paymentStatus === "held") return { text: "Yola düşür", color: "#1B4FD8", bg: "#EFF4FF" };
+  return                               { text: "Gözlənilir", color: "#D97706", bg: "#FEF3C7" };
 }
-
-// ─── SearchingCard ────────────────────────────────────────────────────────────
 
 function SearchingCard({ order, onCancelRequest }: { order: Order; onCancelRequest: (id: string) => void }) {
   const [open, setOpen] = useState(false);
@@ -217,8 +199,6 @@ function SearchingCard({ order, onCancelRequest }: { order: Order; onCancelReque
   );
 }
 
-// ─── OfferCard ────────────────────────────────────────────────────────────────
-
 function OfferCard({ order }: { order: Order }) {
   return (
     <Link href={`/request/${order.id}`} className="block bg-white border-[1.5px] border-[var(--primary)] rounded-2xl overflow-hidden shadow-[0_4px_16px_rgba(27,79,216,0.1)] hover:shadow-[0_8px_24px_rgba(27,79,216,0.15)] transition-all">
@@ -240,23 +220,19 @@ function OfferCard({ order }: { order: Order }) {
   );
 }
 
-// ─── TrackingCard ─────────────────────────────────────────────────────────────
-
 function TrackingCard({ order, onReload }: { order: Order; onReload: () => void }) {
   const [open, setOpen] = useState(true);
   const [showChat, setShowChat] = useState(false);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const router = useRouter();
-  const worker      = order.worker;
+  const worker        = order.worker;
   const paymentStatus = order.paymentStatus;
-  const isEnRoute   = worker?.isEnRoute ?? false;
-  const supabase    = createClient();
+  const isEnRoute     = worker?.isEnRoute ?? false;
+  const supabase      = createClient();
 
-  // ── Real status-a görə dinamik steps ──
   const steps = buildSteps(paymentStatus, isEnRoute);
   const badge = statusBadge(paymentStatus, isEnRoute);
 
-  // Ödəniş təsdiqi
   const handleConfirmPayment = async () => {
     if (!worker?.offerId || confirmingPayment) return;
     setConfirmingPayment(true);
@@ -273,7 +249,6 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
     }
   };
 
-  // Progress bar genişliyi (0–100%) — active step-ə qədər
   const progressPct = (() => {
     const activeIdx = steps.findIndex(s => s.active);
     const doneCount = steps.filter(s => s.done).length;
@@ -283,8 +258,6 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
 
   return (
     <div style={{ background: "#fff", border: "1.5px solid #A7F3D0", borderRadius: 18, overflow: "hidden", boxShadow: "0 4px 16px rgba(16,185,129,0.07)" }}>
-
-      {/* Accordion header */}
       <button
         onClick={() => setOpen(o => !o)}
         style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
@@ -296,7 +269,6 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {/* Real status badge */}
           <span style={{ fontSize: 10, fontWeight: 700, color: badge.color, background: badge.bg, padding: "3px 9px", borderRadius: 999 }}>
             {badge.text}
           </span>
@@ -308,8 +280,6 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
 
       <div style={{ maxHeight: open ? "560px" : "0", overflow: "hidden", transition: "max-height 0.35s ease" }}>
         <div style={{ borderTop: "0.5px solid #E8FDF5" }}>
-
-          {/* Worker row */}
           {worker ? (
             <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: "0.5px solid #F0F9F6" }}>
               <div style={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, background: "linear-gradient(135deg,#1B4FD8,#2563EB)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#fff", fontFamily: "'Playfair Display', serif" }}>
@@ -344,7 +314,6 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
             </div>
           )}
 
-          {/* Ödəniş bölməsi */}
           {!paymentStatus && worker && (
             <div style={{ padding: "12px 16px", borderBottom: "0.5px solid #F0F9F6", background: "#FFFBEB" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
@@ -373,11 +342,8 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
             </div>
           )}
 
-          {/* ── Step progress — dinamik ── */}
           <div style={{ padding: "14px 16px 12px", position: "relative" }}>
-            {/* Arxa xətt */}
             <div style={{ position: "absolute", top: 23, left: 28, right: 28, height: 2, background: "#E4EAFB", zIndex: 0 }} />
-            {/* İrəliləyiş xətti */}
             <div style={{
               position: "absolute", top: 23, left: 28,
               width: `calc((100% - 56px) * ${progressPct / 100})`,
@@ -411,7 +377,6 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
             </div>
           </div>
 
-          {/* Mini map */}
           <div style={{ margin: "0 16px 16px", background: "#EEF3FF", borderRadius: 12, height: 76, position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ position: "absolute", inset: 0, opacity: 0.15, backgroundImage: "linear-gradient(#94A3C0 1px,transparent 1px),linear-gradient(90deg,#94A3C0 1px,transparent 1px)", backgroundSize: "18px 18px" }} />
             <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 10 }}>
@@ -424,7 +389,6 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
               {isEnRoute ? "Yolda 🚶" : "~gözlənilir"}
             </div>
           </div>
-
         </div>
       </div>
 
@@ -439,8 +403,6 @@ function TrackingCard({ order, onReload }: { order: Order; onReload: () => void 
     </div>
   );
 }
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function OrdersClient() {
   const router = useRouter();
@@ -484,14 +446,9 @@ export default function OrdersClient() {
       : { data: [] };
 
     const workerIds = [...new Set((acceptedOffers ?? []).map((o: any) => o.worker_id))];
-
     const { data: workerProfiles } = workerIds.length > 0
-      ? await supabase
-          .from("worker_profiles")
-          .select("user_id, rating, review_count, is_en_route") // ← is_en_route əlavə edildi
-          .in("user_id", workerIds)
+      ? await supabase.from("worker_profiles").select("user_id, rating, review_count, is_en_route").in("user_id", workerIds)
       : { data: [] };
-
     const { data: workerNames } = workerIds.length > 0
       ? await supabase.from("profiles").select("id, full_name").in("id", workerIds)
       : { data: [] };
@@ -524,7 +481,7 @@ export default function OrdersClient() {
           rating:      wpMap[acceptedOffer.worker_id]?.rating ?? 0,
           reviewCount: wpMap[acceptedOffer.worker_id]?.review_count ?? 0,
           offerId:     acceptedOffer.id,
-          isEnRoute:   wpMap[acceptedOffer.worker_id]?.is_en_route ?? false, // ← yeni
+          isEnRoute:   wpMap[acceptedOffer.worker_id]?.is_en_route ?? false,
         } : null;
         return {
           ...order,
@@ -549,9 +506,8 @@ export default function OrdersClient() {
 
   useEffect(() => { load(); }, []);
 
-  const handleCancelRequest = (orderId: string) => setCancelTargetId(orderId);
-
-  const handleCancelConfirm = async () => {
+  const handleCancelRequest  = (orderId: string) => setCancelTargetId(orderId);
+  const handleCancelConfirm  = async () => {
     if (!cancelTargetId || cancelling) return;
     setCancelling(true);
     try {
@@ -590,34 +546,20 @@ export default function OrdersClient() {
   return (
     <>
       <style>{`
-        @keyframes bounce-dot { 0%,100%{transform:translateY(0);opacity:.4} 50%{transform:translateY(-5px);opacity:1} }
-        @keyframes pulse-out  { 0%{transform:scale(.8);opacity:1} 100%{transform:scale(1.5);opacity:0} }
-        @keyframes progress-pulse { 0%{width:20%;margin-left:0} 50%{width:40%} 100%{width:20%;margin-left:80%} }
-        @keyframes walk       { 0%{transform:translateX(0)} 100%{transform:translateX(-4px)} }
-        @keyframes slideUpModal { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
-        @keyframes slideUpToast { from{transform:translateX(-50%) translateY(12px);opacity:0} to{transform:translateX(-50%) translateY(0);opacity:1} }
-        @keyframes spin       { to{transform:rotate(360deg)} }
+        @keyframes bounce-dot    { 0%,100%{transform:translateY(0);opacity:.4} 50%{transform:translateY(-5px);opacity:1} }
+        @keyframes pulse-out     { 0%{transform:scale(.8);opacity:1} 100%{transform:scale(1.5);opacity:0} }
+        @keyframes progress-pulse{ 0%{width:20%;margin-left:0} 50%{width:40%} 100%{width:20%;margin-left:80%} }
+        @keyframes walk          { 0%{transform:translateX(0)} 100%{transform:translateX(-4px)} }
+        @keyframes slideUpModal  { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
+        @keyframes slideUpToast  { from{transform:translateX(-50%) translateY(12px);opacity:0} to{transform:translateX(-50%) translateY(0);opacity:1} }
+        @keyframes spin          { to{transform:rotate(360deg)} }
       `}</style>
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-5 py-6">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h1 className="font-serif text-[20px] font-bold text-[var(--navy)]">Sifarişlərim</h1>
-            <p className="text-[12px] text-[var(--gray-400)] mt-0.5">
-              {orders.length === 0 ? "Aktiv sifariş yoxdur" : `${orders.length} aktiv sifariş`}
-            </p>
-          </div>
-          <Link href="/dashboard/history" className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text-2)] hover:text-[var(--primary)] transition-colors px-3 py-2 rounded-xl hover:bg-[var(--primary-bg)]">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/>
-              <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-            </svg>
-            Tarixçə
-          </Link>
-        </div>
+      <div className="max-w-2xl mx-auto px-4 sm:px-5 py-4">
 
+        {/* ── Boş state ── */}
         {orders.length === 0 && (
-          <div className="bg-white border border-[var(--border)] rounded-2xl p-10 text-center">
+          <div className="bg-white border border-[var(--border)] rounded-2xl p-10 text-center mt-2">
             <p className="text-4xl mb-4">📋</p>
             <p className="text-[15px] font-bold text-[var(--navy)] mb-2">Aktiv sifariş yoxdur</p>
             <p className="text-[12px] text-[var(--gray-400)] mb-5">Yeni sifariş yaradın, ustalar təklif göndərsin</p>
@@ -627,6 +569,7 @@ export default function OrdersClient() {
           </div>
         )}
 
+        {/* ── Təklif Gəldi ── */}
         {offerOrders.length > 0 && (
           <div className="mb-5">
             <div className="flex items-center justify-between mb-3">
@@ -637,6 +580,7 @@ export default function OrdersClient() {
           </div>
         )}
 
+        {/* ── Aktiv Sifariş ── */}
         {activeOrders.length > 0 && (
           <div className="mb-5">
             <div className="flex items-center justify-between mb-3">
@@ -650,6 +594,7 @@ export default function OrdersClient() {
           </div>
         )}
 
+        {/* ── Usta Axtarılır ── */}
         {searchingOrders.length > 0 && (
           <div className="mb-5">
             <div className="flex items-center justify-between mb-3">
@@ -659,6 +604,7 @@ export default function OrdersClient() {
             <div className="space-y-3">{searchingOrders.map(o => <SearchingCard key={o.id} order={o} onCancelRequest={handleCancelRequest} />)}</div>
           </div>
         )}
+
       </div>
 
       {cancelTarget && (

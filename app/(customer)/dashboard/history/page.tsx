@@ -50,12 +50,12 @@ function SkeletonCard() {
       padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 12, background: "#F1F5FE", animation: "shimmer 1.4s infinite", backgroundSize: "200% 100%", backgroundImage: "linear-gradient(90deg,#E4EAFB 25%,#F1F5FE 50%,#E4EAFB 75%)" }} />
+        <div style={{ width: 40, height: 40, borderRadius: 12, backgroundImage: "linear-gradient(90deg,#E4EAFB 25%,#F1F5FE 50%,#E4EAFB 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.4s infinite" }} />
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ width: "50%", height: 14, borderRadius: 6, background: "#F1F5FE", animation: "shimmer 1.4s infinite", backgroundSize: "200% 100%", backgroundImage: "linear-gradient(90deg,#E4EAFB 25%,#F1F5FE 50%,#E4EAFB 75%)" }} />
-          <div style={{ width: "30%", height: 11, borderRadius: 6, background: "#F1F5FE", animation: "shimmer 1.4s infinite", backgroundSize: "200% 100%", backgroundImage: "linear-gradient(90deg,#E4EAFB 25%,#F1F5FE 50%,#E4EAFB 75%)" }} />
+          <div style={{ width: "50%", height: 14, borderRadius: 6, backgroundImage: "linear-gradient(90deg,#E4EAFB 25%,#F1F5FE 50%,#E4EAFB 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.4s infinite" }} />
+          <div style={{ width: "30%", height: 11, borderRadius: 6, backgroundImage: "linear-gradient(90deg,#E4EAFB 25%,#F1F5FE 50%,#E4EAFB 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.4s infinite" }} />
         </div>
-        <div style={{ width: 60, height: 22, borderRadius: 999, background: "#F1F5FE", animation: "shimmer 1.4s infinite", backgroundSize: "200% 100%", backgroundImage: "linear-gradient(90deg,#E4EAFB 25%,#F1F5FE 50%,#E4EAFB 75%)" }} />
+        <div style={{ width: 60, height: 22, borderRadius: 999, backgroundImage: "linear-gradient(90deg,#E4EAFB 25%,#F1F5FE 50%,#E4EAFB 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.4s infinite" }} />
       </div>
     </div>
   );
@@ -94,7 +94,6 @@ function OrderCard({ order }: { order: HistoryOrder }) {
             <p style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)", fontFamily: "var(--font-playfair)", margin: 0 }}>
               {order.category?.name_az ?? "Xidmət"}
             </p>
-            {/* Status badge */}
             {isDone ? (
               <span style={{ fontSize: 10, fontWeight: 700, color: "#065F46", background: "#D1FAE5", padding: "2px 8px", borderRadius: 999, flexShrink: 0 }}>
                 ✓ Tamamlandı
@@ -106,12 +105,10 @@ function OrderCard({ order }: { order: HistoryOrder }) {
             )}
           </div>
 
-          {/* ID + tarix */}
           <p style={{ fontSize: 11, color: "var(--text-3)", margin: "0 0 6px" }}>
             {formatId(order.id)} · {formatDate(order.cancelled_at ?? order.created_at)}
           </p>
 
-          {/* Ünvan */}
           {order.address && (
             <p style={{ fontSize: 11, color: "var(--text-2)", margin: "0 0 4px", display: "flex", alignItems: "center", gap: 4 }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -121,7 +118,6 @@ function OrderCard({ order }: { order: HistoryOrder }) {
             </p>
           )}
 
-          {/* Usta + qiymət */}
           {(order.workerName || order.price) && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6, paddingTop: 6, borderTop: "0.5px solid var(--border)" }}>
               {order.workerName && (
@@ -161,7 +157,6 @@ export default function HistoryPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) { router.push("/login"); return; }
 
-      // 1. done + cancelled sifarişlər
       const { data: rawOrders } = await supabase
         .from("job_requests")
         .select("id, status, cancel_reason, created_at, cancelled_at, description, address, category_id")
@@ -176,7 +171,6 @@ export default function HistoryPage() {
         return;
       }
 
-      // 2. Kateqoriyalar
       const catIds = [...new Set(rawOrders.map((o: any) => o.category_id).filter(Boolean))];
       const { data: catsData } = catIds.length > 0
         ? await supabase.from("categories").select("id,name_az,icon").in("id", catIds)
@@ -184,17 +178,11 @@ export default function HistoryPage() {
       const catMap: Record<string, any> = {};
       (catsData ?? []).forEach((c: any) => { catMap[c.id] = c; });
 
-      // 3. Qəbul edilmiş offer-lər (done sifarişlər üçün)
       const doneIds = rawOrders.filter((o: any) => o.status === "done").map((o: any) => o.id);
       const { data: acceptedOffers } = doneIds.length > 0
-        ? await supabase
-            .from("offers")
-            .select("id,job_id,worker_id,price")
-            .in("job_id", doneIds)
-            .eq("status", "accepted")
+        ? await supabase.from("offers").select("id,job_id,worker_id,price").in("job_id", doneIds).eq("status", "accepted")
         : { data: [] };
 
-      // 4. Worker adları
       const workerIds = [...new Set((acceptedOffers ?? []).map((o: any) => o.worker_id))];
       const { data: workerNames } = workerIds.length > 0
         ? await supabase.from("profiles").select("id,full_name").in("id", workerIds)
@@ -205,7 +193,6 @@ export default function HistoryPage() {
       const offerByJob: Record<string, any> = {};
       (acceptedOffers ?? []).forEach((o: any) => { offerByJob[o.job_id] = o; });
 
-      // 5. Birləşdir
       const merged: HistoryOrder[] = rawOrders.map((o: any) => {
         const offer = offerByJob[o.id] ?? null;
         return {
@@ -242,48 +229,73 @@ export default function HistoryPage() {
 
       <div style={{ minHeight: "100vh", background: "var(--bg)", paddingBottom: 100 }}>
 
-        {/* ── HEADER ── */}
+        {/* ── HEADER — sticky, tam yuxarıdan ── */}
         <div style={{
           background: "linear-gradient(135deg,#0D1F3C 0%,#1B3A7A 60%,#1B4FD8 100%)",
-          padding: "12px 16px 20px",
-          position: "relative", overflow: "hidden",
+          padding: "14px 16px 18px",
+          position: "sticky", top: 0, zIndex: 50,
+          overflow: "hidden",
         }}>
-          <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: "linear-gradient(rgba(27,79,216,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(27,79,216,0.07) 1px,transparent 1px)", backgroundSize: "32px 32px" }} />
+          {/* Grid overlay */}
+          <div style={{
+            position: "absolute", inset: 0, pointerEvents: "none",
+            backgroundImage: "linear-gradient(rgba(27,79,216,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(27,79,216,0.07) 1px,transparent 1px)",
+            backgroundSize: "32px 32px",
+          }} />
 
-          {/* Geri + başlıq */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, position: "relative" }}>
+
+            {/* Geri düyməsi */}
             <button
               onClick={() => router.push("/dashboard?tab=orders")}
-              style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+              style={{
+                width: 32, height: 32, borderRadius: 10,
+                background: "rgba(255,255,255,0.12)",
+                border: "1px solid rgba(255,255,255,0.18)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", flexShrink: 0,
+              }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 12H5M12 19l-7-7 7-7" />
               </svg>
             </button>
-            <div>
-              <p style={{ fontFamily: "var(--font-playfair)", fontSize: 17, fontWeight: 800, color: "#fff", margin: 0 }}>
-                Tarixçə
-              </p>
-              {!loading && (
-                <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", margin: "2px 0 0" }}>
-                  {orders.length > 0 ? `${orders.length} sifariş` : "Sifariş yoxdur"}
+
+            {/* İkon + Başlıq */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 10,
+                background: "rgba(255,255,255,0.10)",
+                border: "1px solid rgba(255,255,255,0.14)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 15,
+              }}>
+                📋
+              </div>
+              <div>
+                <p style={{ fontFamily: "var(--font-playfair)", fontSize: 17, fontWeight: 800, color: "#fff", margin: 0 }}>
+                  Tarixçə
                 </p>
-              )}
+                {!loading && (
+                  <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", margin: "2px 0 0" }}>
+                    {orders.length > 0 ? `${orders.length} sifariş` : "Sifariş yoxdur"}
+                  </p>
+                )}
+              </div>
             </div>
+
           </div>
         </div>
 
         {/* ── CONTENT ── */}
         <div style={{ padding: "16px", maxWidth: 560, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
 
-          {/* Loading */}
           {loading && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[1,2,3].map(i => <SkeletonCard key={i} />)}
             </div>
           )}
 
-          {/* Boş state */}
           {!loading && orders.length === 0 && (
             <div style={{ background: "#fff", borderRadius: 20, border: "1px solid var(--border)", padding: "48px 24px", textAlign: "center", marginTop: 8 }}>
               <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
@@ -302,7 +314,6 @@ export default function HistoryPage() {
             </div>
           )}
 
-          {/* Tamamlanmış sifarişlər */}
           {!loading && doneOrders.length > 0 && (
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
@@ -323,7 +334,6 @@ export default function HistoryPage() {
             </div>
           )}
 
-          {/* Ləğv edilmiş sifarişlər */}
           {!loading && cancelledOrders.length > 0 && (
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>

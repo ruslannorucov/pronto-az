@@ -162,7 +162,6 @@ export default function ChatsPage() {
 
       if (!offers || offers.length === 0) { setLoading(false); return; }
 
-      // Ödənişi olan offer-lər (held veya released)
       const offerIds = offers.map((o: any) => o.id);
       const { data: payments } = await supabase
         .from("payments")
@@ -171,7 +170,6 @@ export default function ChatsPage() {
         .in("status", ["held", "released"]);
       const paidOfferIds = new Set((payments ?? []).map((p: any) => p.offer_id));
 
-      // in_progress → yalnız ödənişlə; done → həmişə
       const filteredOffers = offers.filter((o: any) => {
         const job = jobs.find((j: any) => j.id === o.job_id);
         if (job?.status === "done") return true;
@@ -250,7 +248,6 @@ export default function ChatsPage() {
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-3">
-        <div className="h-7 w-32 bg-[var(--gray-100)] rounded-xl animate-pulse mb-6" />
         {[1, 2, 3].map(i => (
           <div key={i} className="h-[80px] bg-[var(--gray-100)] rounded-2xl animate-pulse" />
         ))}
@@ -260,18 +257,11 @@ export default function ChatsPage() {
 
   return (
     <>
-      <div className="max-w-2xl mx-auto px-4 sm:px-5 py-6">
-        <div className="mb-5">
-          <h1 className="font-serif text-[20px] font-bold text-[var(--navy)]">Mesajlar</h1>
-          <p className="text-[12px] text-[var(--gray-400)] mt-0.5">
-            {chats.length === 0
-              ? "Aktiv söhbət yoxdur"
-              : `${activeChats.length} aktiv · ${archivedChats.length} arxiv`}
-          </p>
-        </div>
+      <div className="max-w-2xl mx-auto px-4 sm:px-5 py-4">
 
+        {/* ── Boş state ── */}
         {chats.length === 0 && (
-          <div className="bg-white border border-[var(--border)] rounded-2xl p-10 text-center mt-4">
+          <div className="bg-white border border-[var(--border)] rounded-2xl p-10 text-center mt-2">
             <div className="text-5xl mb-4">💬</div>
             <p className="text-[15px] font-bold text-[var(--navy)] mb-2">Aktiv söhbət yoxdur</p>
             <p className="text-[12px] text-[var(--gray-400)] mb-5">
@@ -286,6 +276,7 @@ export default function ChatsPage() {
           </div>
         )}
 
+        {/* ── Aktiv söhbətlər ── */}
         {activeChats.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
@@ -305,6 +296,7 @@ export default function ChatsPage() {
           </div>
         )}
 
+        {/* ── Arxiv söhbətlər ── */}
         {archivedChats.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
@@ -322,6 +314,7 @@ export default function ChatsPage() {
             </div>
           </div>
         )}
+
       </div>
 
       {activeChat && (

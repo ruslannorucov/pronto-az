@@ -1,22 +1,54 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AppTopBar from "@/components/AppTopBar";
 import BottomNav from "@/components/BottomNav";
 
-const SHELL_EXCLUDED = [
+// AppTopBar göstərilməyən route-lar (öz header-i olan səhifələr)
+const TOPBAR_EXCLUDED = [
   "/login",
   "/register",
   "/worker/register",
   "/worker/pending",
   "/admin",
+  "/notifications",
+  "/profile",
+  "/dashboard/history",
+  "/workers",
+  "/request",
 ];
 
-function isExcluded(pathname: string): boolean {
+// BottomNav göstərilməyən route-lar
+const BOTTOMNAV_EXCLUDED = [
+  "/login",
+  "/register",
+  "/worker/register",
+  "/worker/pending",
+  "/admin",
+  "/request",
+];
+
+function isTopBarExcluded(pathname: string): boolean {
   if (pathname === "/") return true;
-  return SHELL_EXCLUDED.some((p) => pathname.startsWith(p));
+  return TOPBAR_EXCLUDED.some((p) => pathname.startsWith(p));
+}
+
+function isBottomNavExcluded(pathname: string): boolean {
+  if (pathname === "/") return true;
+  return BOTTOMNAV_EXCLUDED.some((p) => pathname.startsWith(p));
+}
+
+// Tab adını müəyyən et
+function resolvePageTitle(pathname: string, searchParams: URLSearchParams): string {
+  const tab = searchParams.get("tab");
+  if (pathname === "/dashboard") {
+    if (tab === "orders") return "Sifarişlərim";
+    return "home"; // logo göstəriləcək
+  }
+  if (pathname === "/chats") return "Mesajlar";
+  return "home";
 }
 
 interface UserInfo {
@@ -28,15 +60,15 @@ interface UserInfo {
   activeBadge: number;
 }
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
+function AppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [checked, setChecked] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
     const load = async () => {
-      // getUser() əvəzinə getSession() — lokaldan oxuyur, lock yaratmır
       const { data: { session } } = await supabase.auth.getSession();
       const authUser = session?.user;
       if (!authUser) { setChecked(true); return; }
@@ -87,35 +119,44 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
       if (!session) { setUser(null); setChecked(true); }
-      else load(); // session dəyişdikdə yenidən yüklə
+      else load();
     });
     return () => listener.subscription.unsubscribe();
   }, [pathname]);
 
-  const showShell = checked && user && !isExcluded(pathname);
+  const showTopBar    = checked && user && !isTopBarExcluded(pathname);
+  const showBottomNav = checked && user && !isBottomNavExcluded(pathname);
+  const pageTitle     = resolvePageTitle(pathname, searchParams);
 
   return (
     <>
-      {showShell && (
+      {showTopBar && (
         <AppTopBar
           userRole={user.role}
           userName={user.fullName}
           userEmail={user.email}
           initials={user.initials}
           unreadCount={user.unreadCount}
+          pageTitle={pageTitle}
         />
       )}
 
       {children}
 
-      {showShell && (
-        <Suspense fallback={null}>
-          <BottomNav
-            variant={user.role === "worker" ? "worker" : "customer"}
-            activeBadge={user.activeBadge}
-          />
-        </Suspense>
+      {showBottomNav && (
+        <BottomNav
+          variant={user.role === "worker" ? "worker" : "customer"}
+          activeBadge={user.activeBadge}
+        />
       )}
     </>
+  );
+}
+
+export default function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<>{children}</>}>
+      <AppShellInner>{children}</AppShellInner>
+    </Suspense>
   );
 }

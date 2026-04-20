@@ -125,10 +125,12 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px" }}>
-        <div style={{ height: 220, background: "linear-gradient(135deg,#0B1D3A,#0F2D5C)", borderRadius: "0 0 28px 28px", marginLeft: -16, marginRight: -16 }} className="animate-pulse" />
-        <div style={{ height: 80, background: "#F1F5FE", borderRadius: 20, marginTop: 16 }} className="animate-pulse" />
-        <div style={{ height: 180, background: "#F1F5FE", borderRadius: 20, marginTop: 12 }} className="animate-pulse" />
+      <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
+        <div style={{ height: 80, background: "linear-gradient(135deg,#0B1D3A,#0F2D5C)" }} />
+        <div style={{ maxWidth: 480, margin: "0 auto", padding: "16px" }}>
+          <div style={{ height: 80, background: "#F1F5FE", borderRadius: 20, marginBottom: 12 }} className="animate-pulse" />
+          <div style={{ height: 180, background: "#F1F5FE", borderRadius: 20 }} className="animate-pulse" />
+        </div>
       </div>
     );
   }
@@ -136,6 +138,9 @@ export default function ProfilePage() {
   if (!profile) return null;
 
   const isWorker = profile.role === "worker";
+  const avatarGradient = isWorker
+    ? "linear-gradient(135deg, #059669, #10B981)"
+    : "linear-gradient(135deg, #1B4FD8, #3B82F6)";
 
   return (
     <>
@@ -181,123 +186,87 @@ export default function ProfilePage() {
         .quick-link:active { background: #EFF4FF; transform: scale(0.99); }
       `}</style>
 
-      <div style={{ maxWidth: 480, margin: "0 auto", paddingBottom: 32 }}>
+      <div style={{ minHeight: "100vh", background: "var(--bg)", paddingBottom: 100 }}>
 
-        {/* ── HEADER ── */}
+        {/* ── STICKY HEADER — Instagram/Bolt stil ── */}
         <div style={{
-          background: "linear-gradient(150deg, #071428 0%, #0D2554 50%, #1a3a82 100%)",
-          marginLeft: -16, marginRight: -16,
-          padding: "32px 24px 28px",
-          textAlign: "center",
-          position: "relative",
-          overflow: "hidden",
-          borderRadius: "0 0 28px 28px",
+          position: "sticky", top: 0, zIndex: 50,
+          background: "linear-gradient(135deg, #0B1D3A 0%, #0F2D5C 50%, #0D2554 100%)",
+          padding: "12px 16px",
+          boxShadow: "0 2px 24px rgba(11,29,58,0.5)",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
         }}>
-          {/* Subtle dot pattern */}
-          <div style={{
-            position: "absolute", inset: 0,
-            backgroundImage: "radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px)",
-            backgroundSize: "20px 20px",
-          }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12, maxWidth: 480, margin: "0 auto" }}>
 
-          <div style={{ position: "relative", zIndex: 1 }}>
-            {/* Avatar — sadə, dairəvi, mərkəzdə */}
+            {/* Avatar — kiçik, sola sıxışdırılmış */}
             <div style={{
-              width: 64, height: 64,
-              borderRadius: "50%",
-              background: isWorker
-                ? "linear-gradient(135deg, #059669, #10B981)"
-                : "linear-gradient(135deg, #1B4FD8, #3B82F6)",
+              width: 38, height: 38, borderRadius: 12, flexShrink: 0,
+              background: avatarGradient,
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 22, fontWeight: 800, color: "#fff",
-              fontFamily: "'Playfair Display', serif",
-              margin: "0 auto 14px",
-              border: "2px solid rgba(255,255,255,0.18)",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+              fontSize: 13, fontWeight: 800, color: "#fff",
+              border: "2px solid rgba(255,255,255,0.2)",
+              boxShadow: "0 2px 10px rgba(0,0,0,0.25)",
             }}>
               {getInitials(profile.full_name)}
             </div>
 
-            {/* Ad */}
-            <h1 style={{
-              fontSize: 19, fontWeight: 800, color: "#fff",
-              fontFamily: "'Playfair Display', serif",
-              margin: "0 0 5px", lineHeight: 1.2,
-            }}>
-              {profile.full_name}
-            </h1>
-
-            {/* Email */}
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", margin: "0 0 12px" }}>
-              {profile.email}
-            </p>
-
-            {/* Badgelər */}
-            <div style={{ display: "flex", justifyContent: "center", gap: 7, flexWrap: "wrap" }}>
-              <span style={{
-                fontSize: 11, fontWeight: 700,
-                color: isWorker ? "#34D399" : "#60A5FA",
-                background: isWorker ? "rgba(52,211,153,0.12)" : "rgba(96,165,250,0.12)",
-                border: `1px solid ${isWorker ? "rgba(52,211,153,0.22)" : "rgba(96,165,250,0.22)"}`,
-                padding: "3px 11px", borderRadius: 999,
-                display: "inline-flex", alignItems: "center", gap: 5,
+            {/* Ad + role */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: 16, fontWeight: 800, color: "#fff",
+                margin: 0, lineHeight: 1.2,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}>
-                <span style={{
-                  width: 5, height: 5, borderRadius: "50%",
-                  background: isWorker ? "#34D399" : "#60A5FA",
-                  display: "inline-block",
-                }} />
-                {isWorker ? "Usta" : "Müştəri"}
-              </span>
-
-              {profile.city && (
-                <span style={{
-                  fontSize: 11, fontWeight: 500,
-                  color: "rgba(255,255,255,0.5)",
-                  background: "rgba(255,255,255,0.07)",
-                  border: "1px solid rgba(255,255,255,0.10)",
-                  padding: "3px 11px", borderRadius: 999,
-                }}>
-                  📍 {profile.city}
-                </span>
-              )}
+                {profile.full_name}
+              </p>
+              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", margin: "2px 0 0" }}>
+                {profile.email}
+              </p>
             </div>
 
-            {/* Redaktə düyməsi */}
+            {/* Redaktə düyməsi — sağda */}
             <button
               onClick={() => { setEditing(e => !e); setSaveMsg(null); }}
               style={{
-                marginTop: 16,
-                padding: "8px 18px", borderRadius: 12,
+                padding: "7px 14px", borderRadius: 10,
                 background: editing ? "rgba(239,68,68,0.12)" : "rgba(255,255,255,0.08)",
                 border: `1px solid ${editing ? "rgba(239,68,68,0.25)" : "rgba(255,255,255,0.14)"}`,
                 color: editing ? "#FCA5A5" : "rgba(255,255,255,0.75)",
                 fontSize: 12, fontWeight: 600,
                 cursor: "pointer", fontFamily: "inherit",
-                display: "inline-flex", alignItems: "center", gap: 6,
+                display: "inline-flex", alignItems: "center", gap: 5,
+                flexShrink: 0,
               }}
             >
               {editing ? (
-                <><span style={{ fontSize: 10 }}>✕</span> Ləğv et</>
+                <>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                  Ləğv
+                </>
               ) : (
                 <>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
                     <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="rgba(255,255,255,0.75)" strokeWidth="2" strokeLinecap="round"/>
                     <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="rgba(255,255,255,0.75)" strokeWidth="2" strokeLinecap="round"/>
                   </svg>
-                  Redaktə et
+                  Redaktə
                 </>
               )}
             </button>
+
           </div>
         </div>
 
-        <div style={{ padding: "0 16px" }}>
+        {/* ── CONTENT ── */}
+        <div style={{ maxWidth: 480, margin: "0 auto", padding: "16px 16px 0" }}>
 
           {/* Save mesajı */}
           {saveMsg && (
             <div className="su" style={{
-              marginTop: 14, padding: "10px 14px", borderRadius: 12,
+              marginBottom: 14, padding: "10px 14px", borderRadius: 12,
               background: "#F0FDF4", border: "1px solid #86EFAC",
               fontSize: 12, fontWeight: 600, color: "#15803D",
               display: "flex", alignItems: "center", gap: 8,
@@ -308,10 +277,9 @@ export default function ProfilePage() {
 
           {/* ── STATİSTİKA ── */}
           <div className="su su-1" style={{
-            marginTop: 18,
             display: "grid",
             gridTemplateColumns: isWorker ? "repeat(3,1fr)" : "repeat(2,1fr)",
-            gap: 10,
+            gap: 10, marginBottom: 14,
           }}>
             {isWorker && workerStats ? (
               <>
@@ -329,7 +297,7 @@ export default function ProfilePage() {
 
           {/* ── MƏLUMATLAR ── */}
           <div className="su su-2" style={{
-            marginTop: 14, background: "#fff",
+            marginBottom: 12, background: "#fff",
             border: "1px solid #E4EAFB", borderRadius: 20, overflow: "hidden",
           }}>
             <SectionHeader emoji="👤" title="Şəxsi məlumatlar" />
@@ -372,7 +340,7 @@ export default function ProfilePage() {
           {/* ── WORKER — Peşə məlumatları ── */}
           {isWorker && workerStats && (
             <div className="su su-3" style={{
-              marginTop: 12, background: "#fff",
+              marginBottom: 12, background: "#fff",
               border: "1px solid #E4EAFB", borderRadius: 20, overflow: "hidden",
             }}>
               <SectionHeader emoji="🔧" title="Peşə məlumatları" />
@@ -389,7 +357,7 @@ export default function ProfilePage() {
 
           {/* ── TEZ KEÇİDLƏR ── */}
           <div className="su su-3" style={{
-            marginTop: 12, background: "#fff",
+            marginBottom: 12, background: "#fff",
             border: "1px solid #E4EAFB", borderRadius: 20, overflow: "hidden",
           }}>
             <SectionHeader emoji="⚡" title="Tez keçidlər" />
@@ -415,14 +383,14 @@ export default function ProfilePage() {
               onClick={handleSignOut}
               disabled={signingOut}
               style={{
-                marginTop: 12, width: "100%",
+                width: "100%",
                 padding: "14px 20px", borderRadius: 16,
                 background: "#FEF2F2", border: "1px solid #FECACA",
                 color: "#EF4444", fontSize: 14, fontWeight: 700,
                 cursor: signingOut ? "not-allowed" : "pointer",
                 fontFamily: "inherit", opacity: signingOut ? 0.6 : 1,
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
-                transition: "opacity 0.15s",
+                transition: "opacity 0.15s", marginBottom: 16,
               }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -433,7 +401,6 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          <div style={{ height: 16 }} />
         </div>
       </div>
     </>

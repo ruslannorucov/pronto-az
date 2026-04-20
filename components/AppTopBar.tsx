@@ -11,6 +11,7 @@ interface AppTopBarProps {
   userEmail: string;
   initials: string;
   unreadCount: number;
+  pageTitle?: string; // "home" → logo, digər string → tab adı
 }
 
 export default function AppTopBar({
@@ -19,6 +20,7 @@ export default function AppTopBar({
   userEmail,
   initials,
   unreadCount,
+  pageTitle = "home",
 }: AppTopBarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -42,10 +44,11 @@ export default function AppTopBar({
 
   const dashboardLink = userRole === "worker" ? "/worker/panel" : "/dashboard";
 
-  // Avatar gradient — role-a görə
   const avatarGradient = userRole === "worker"
     ? "linear-gradient(135deg, #059669, #10B981)"
     : "linear-gradient(135deg, #3B82F6, #1B4FD8)";
+
+  const showLogo = pageTitle === "home";
 
   return (
     <>
@@ -85,54 +88,60 @@ export default function AppTopBar({
         borderBottom: "1px solid rgba(255,255,255,0.06)",
       }}>
 
-        {/* Logo */}
-        <Link href={dashboardLink} style={{
-          textDecoration: "none", display: "flex", alignItems: "baseline", gap: "1px",
-        }}>
+        {/* Sol — Logo və ya Tab adı */}
+        {showLogo ? (
+          <Link href={dashboardLink} style={{
+            textDecoration: "none", display: "flex", alignItems: "baseline", gap: "1px",
+          }}>
+            <span style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "22px", fontWeight: 800,
+              color: "white", letterSpacing: "-0.5px",
+            }}>Pronto</span>
+            <span style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "22px", fontWeight: 800,
+              background: "linear-gradient(135deg, #60A5FA, #93C5FD)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}>.</span>
+            <span style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "22px", fontWeight: 800,
+              color: "white", letterSpacing: "-0.5px",
+            }}>az</span>
+          </Link>
+        ) : (
           <span style={{
             fontFamily: "'Playfair Display', serif",
-            fontSize: "22px", fontWeight: 800,
-            color: "white", letterSpacing: "-0.5px",
-          }}>Pronto</span>
-          <span style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: "22px", fontWeight: 800,
-            background: "linear-gradient(135deg, #60A5FA, #93C5FD)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-          }}>.</span>
-          <span style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: "22px", fontWeight: 800,
-            color: "white", letterSpacing: "-0.5px",
-          }}>az</span>
-        </Link>
+            fontSize: "19px", fontWeight: 800,
+            color: "white", letterSpacing: "-0.3px",
+          }}>
+            {pageTitle}
+          </span>
+        )}
 
-        {/* Sağ tərəf */}
+        {/* Sağ tərəf — Tarixçə (şərti) + Bell + Avatar */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
 
-          {/* Role badge */}
-          <div style={{
-            display: "flex", alignItems: "center", gap: "5px",
-            background: "rgba(255,255,255,0.08)",
-            border: "1px solid rgba(255,255,255,0.12)",
-            borderRadius: "20px",
-            padding: "4px 10px 4px 6px",
-          }}>
-            <div style={{
-              width: "6px", height: "6px", borderRadius: "50%",
-              background: userRole === "worker" ? "#34D399" : "#60A5FA",
-              boxShadow: userRole === "worker"
-                ? "0 0 6px rgba(52,211,153,0.8)"
-                : "0 0 6px rgba(96,165,250,0.8)",
-            }} />
-            <span style={{
-              fontSize: "11px", fontWeight: 600, color: "rgba(255,255,255,0.75)",
-              letterSpacing: "0.02em",
+          {/* Tarixçə linki — yalnız Sifarişlərim tabında */}
+          {pageTitle === "Sifarişlərim" && (
+            <Link href="/dashboard/history" style={{
+              display: "flex", alignItems: "center", gap: 5,
+              fontSize: 11, fontWeight: 600,
+              color: "rgba(255,255,255,0.65)",
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: 10, padding: "5px 10px",
+              textDecoration: "none",
             }}>
-              {userRole === "worker" ? "Usta" : "Müştəri"}
-            </span>
-          </div>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/>
+                <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+              Tarixçə
+            </Link>
+          )}
 
           {/* Bell */}
           <Link href="/notifications" style={{

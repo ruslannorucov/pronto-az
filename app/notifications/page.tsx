@@ -20,24 +20,24 @@ type Notification = {
 
 function timeAgo(dateStr: string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (diff < 60)    return "İndicə";
-  if (diff < 3600)  return `${Math.floor(diff / 60)} dəq əvvəl`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} saat əvvəl`;
+  if (diff < 60)     return "İndicə";
+  if (diff < 3600)   return `${Math.floor(diff / 60)} dəq əvvəl`;
+  if (diff < 86400)  return `${Math.floor(diff / 3600)} saat əvvəl`;
   if (diff < 604800) return `${Math.floor(diff / 86400)} gün əvvəl`;
   return new Date(dateStr).toLocaleDateString("az-AZ", { day: "numeric", month: "long" });
 }
 
 function notifIcon(type: string): { icon: string; bg: string; color: string } {
   switch (type) {
-    case "offer_received":  return { icon: "💼", bg: "#EFF4FF", color: "#1B4FD8" };
-    case "offer_accepted":  return { icon: "✅", bg: "#D1FAE5", color: "#059669" };
-    case "offer_rejected":  return { icon: "✕",  bg: "#FEE2E2", color: "#DC2626" };
-    case "payment_held":    return { icon: "💳", bg: "#FEF3C7", color: "#D97706" };
-    case "payment_released":return { icon: "💰", bg: "#D1FAE5", color: "#059669" };
-    case "job_completed":   return { icon: "🏁", bg: "#F0FDF4", color: "#059669" };
-    case "worker_en_route": return { icon: "🚶", bg: "#EFF4FF", color: "#1B4FD8" };
-    case "new_request":     return { icon: "📋", bg: "#EFF4FF", color: "#1B4FD8" };
-    default:                return { icon: "🔔", bg: "#F1F5FE", color: "#4A5878" };
+    case "offer_received":   return { icon: "💼", bg: "#EFF4FF", color: "#1B4FD8" };
+    case "offer_accepted":   return { icon: "✅", bg: "#D1FAE5", color: "#059669" };
+    case "offer_rejected":   return { icon: "✕",  bg: "#FEE2E2", color: "#DC2626" };
+    case "payment_held":     return { icon: "💳", bg: "#FEF3C7", color: "#D97706" };
+    case "payment_released": return { icon: "💰", bg: "#D1FAE5", color: "#059669" };
+    case "job_completed":    return { icon: "🏁", bg: "#F0FDF4", color: "#059669" };
+    case "worker_en_route":  return { icon: "🚶", bg: "#EFF4FF", color: "#1B4FD8" };
+    case "new_request":      return { icon: "📋", bg: "#EFF4FF", color: "#1B4FD8" };
+    default:                 return { icon: "🔔", bg: "#F1F5FE", color: "#4A5878" };
   }
 }
 
@@ -126,7 +126,6 @@ export default function NotificationsPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) { router.push("/login"); return; }
 
-      // Bildirişləri çək
       const { data } = await supabase
         .from("notifications")
         .select("id, type, title, body, job_id, read_at, created_at")
@@ -136,7 +135,6 @@ export default function NotificationsPage() {
 
       setNotifications(data ?? []);
 
-      // Oxunmamış bildirişləri oxunmuş kimi işarələ
       const unreadIds = (data ?? [])
         .filter((n: Notification) => !n.read_at)
         .map((n: Notification) => n.id);
@@ -156,19 +154,16 @@ export default function NotificationsPage() {
 
   const handleNotifClick = (notif: Notification) => {
     if (!notif.job_id) return;
-    // Sifarişin vəziyyətinə görə yönləndir
     router.push(`/dashboard?tab=orders`);
   };
 
-  const unreadCount  = notifications.filter(n => !n.read_at).length;
-  const todayNotifs  = notifications.filter(n => {
-    const diff = (Date.now() - new Date(n.created_at).getTime()) / 86400000;
-    return diff < 1;
-  });
-  const olderNotifs  = notifications.filter(n => {
-    const diff = (Date.now() - new Date(n.created_at).getTime()) / 86400000;
-    return diff >= 1;
-  });
+  const unreadCount = notifications.filter(n => !n.read_at).length;
+  const todayNotifs = notifications.filter(n =>
+    (Date.now() - new Date(n.created_at).getTime()) / 86400000 < 1
+  );
+  const olderNotifs = notifications.filter(n =>
+    (Date.now() - new Date(n.created_at).getTime()) / 86400000 >= 1
+  );
 
   return (
     <>
@@ -179,23 +174,41 @@ export default function NotificationsPage() {
 
       <div style={{ minHeight: "100vh", background: "var(--bg)", paddingBottom: 100 }}>
 
-        {/* ── HEADER ── */}
+        {/* ── HEADER — sticky, tam yuxarıdan başlayır ── */}
         <div style={{
           background: "linear-gradient(135deg,#0D1F3C 0%,#1B3A7A 60%,#1B4FD8 100%)",
-          padding: "12px 16px 20px",
-          position: "relative", overflow: "hidden",
+          padding: "14px 16px 18px",
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+          overflow: "hidden",
         }}>
-          <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: "linear-gradient(rgba(27,79,216,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(27,79,216,0.07) 1px,transparent 1px)", backgroundSize: "32px 32px" }} />
+          {/* Grid overlay */}
+          <div style={{
+            position: "absolute", inset: 0, pointerEvents: "none",
+            backgroundImage: "linear-gradient(rgba(27,79,216,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(27,79,216,0.07) 1px,transparent 1px)",
+            backgroundSize: "32px 32px",
+          }} />
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, position: "relative" }}>
+
+            {/* ✕ Bağla düyməsi */}
             <button
               onClick={() => router.back()}
-              style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+              style={{
+                width: 32, height: 32, borderRadius: 10,
+                background: "rgba(255,255,255,0.12)",
+                border: "1px solid rgba(255,255,255,0.18)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", flexShrink: 0,
+              }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
+                <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
+
+            {/* Başlıq + alt mətn */}
             <div>
               <p style={{ fontFamily: "var(--font-playfair)", fontSize: 17, fontWeight: 800, color: "#fff", margin: 0 }}>
                 Bildirişlər
@@ -209,6 +222,7 @@ export default function NotificationsPage() {
                 </p>
               )}
             </div>
+
           </div>
         </div>
 
